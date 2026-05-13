@@ -5,6 +5,7 @@ declare global {
     interface Request {
       userId?: string;
       userEmail?: string;
+      userRole?: 'JOB_SEEKER' | 'EMPLOYER';
     }
   }
 }

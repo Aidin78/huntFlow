@@ -3,6 +3,7 @@ import type { Response } from 'express';
 export type ApiErrorCode =
   | 'VALIDATION_ERROR'
   | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
   | 'CONFLICT'
   | 'INTERNAL_ERROR';
 

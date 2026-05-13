@@ -7,11 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  JOB_SEEKER
+  EMPLOYER
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
   passwordHash String
   name         String?
+  role         UserRole @default(JOB_SEEKER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

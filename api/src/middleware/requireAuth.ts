@@ -18,6 +18,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     const payload = verifyAccessToken(token);
     req.userId = payload.sub;
     req.userEmail = payload.email;
+    req.userRole = payload.role;
     next();
   } catch {
     sendError(res, 401, 'UNAUTHORIZED', 'Invalid or expired token');

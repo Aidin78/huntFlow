@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '@huntflow/db';
+import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
 import { sendError } from '../lib/errors';
@@ -11,11 +11,13 @@ const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(128),
   name: z.string().trim().max(120).optional(),
+  role: z.nativeEnum(UserRole).default(UserRole.JOB_SEEKER),
 });
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(128),
+  role: z.nativeEnum(UserRole),
 });
 
 export const authRouter = Router();
@@ -27,7 +29,7 @@ authRouter.post('/register', async (req, res) => {
     return;
   }
 
-  const { email, password, name } = parsed.data;
+  const { email, password, name, role } = parsed.data;
 
   try {
     const passwordHash = await hashPassword(password);
@@ -36,17 +38,22 @@ authRouter.post('/register', async (req, res) => {
         email,
         passwordHash,
         name: name?.length ? name : undefined,
+        role,
       },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
     });
 
     let token: string;
     try {
-      token = signAccessToken({ sub: user.id, email: user.email });
+      token = signAccessToken({ sub: user.id, email: user.email, role: user.role });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error(e);
-      sendError(res, 500, 'INTERNAL_ERROR', 'Server misconfiguration');
+      const hint =
+        e instanceof Error && e.message.includes('JWT_SECRET')
+          ? 'Set JWT_SECRET in the repo root .env (at least 16 characters), then restart the API.'
+          : 'Server misconfiguration';
+      sendError(res, 500, 'INTERNAL_ERROR', hint);
       return;
     }
 
@@ -69,11 +76,11 @@ authRouter.post('/login', async (req, res) => {
     return;
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, role: selectedRole } = parsed.data;
 
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, email: true, name: true, passwordHash: true, createdAt: true },
+    select: { id: true, email: true, name: true, role: true, passwordHash: true, createdAt: true },
   });
 
   if (!user) {
@@ -87,13 +94,29 @@ authRouter.post('/login', async (req, res) => {
     return;
   }
 
+  if (user.role !== selectedRole) {
+    sendError(
+      res,
+      403,
+      'FORBIDDEN',
+      user.role === UserRole.EMPLOYER
+        ? 'This account is registered as an employer. Select "Employer" above, then sign in again.'
+        : 'This account is registered as a job seeker. Select "Job seeker" above, then sign in again.',
+    );
+    return;
+  }
+
   let token: string;
   try {
-    token = signAccessToken({ sub: user.id, email: user.email });
+    token = signAccessToken({ sub: user.id, email: user.email, role: user.role });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Server misconfiguration');
+    const hint =
+      e instanceof Error && e.message.includes('JWT_SECRET')
+        ? 'Set JWT_SECRET in the repo root .env (at least 16 characters), then restart the API.'
+        : 'Server misconfiguration';
+    sendError(res, 500, 'INTERNAL_ERROR', hint);
     return;
   }
 
@@ -110,7 +133,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
+    select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
   });
 
   if (!user) {

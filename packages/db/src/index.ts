@@ -1,4 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
+
+export { UserRole };
 
 declare global {
   // eslint-disable-next-line no-var

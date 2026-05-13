@@ -1,12 +1,19 @@
 import jwt from 'jsonwebtoken';
 
+import type { UserRole } from '@huntflow/db';
+
 export type AccessTokenPayload = {
   sub: string;
   email: string;
+  role: UserRole;
 };
 
 function getSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const raw = process.env.JWT_SECRET;
+  const secret =
+    typeof raw === 'string'
+      ? raw.trim().replace(/^["']|["']$/g, '')
+      : '';
   if (!secret || secret.length < 16) {
     throw new Error('JWT_SECRET must be set and at least 16 characters long');
   }
@@ -18,7 +25,18 @@ export function signAccessToken(payload: AccessTokenPayload, expiresInSeconds = 
     algorithm: 'HS256',
     expiresIn: expiresInSeconds,
   };
-  return jwt.sign({ sub: payload.sub, email: payload.email }, getSecret(), options);
+  return jwt.sign(
+    { sub: payload.sub, email: payload.email, role: payload.role },
+    getSecret(),
+    options,
+  );
+}
+
+function parseRole(raw: unknown): UserRole {
+  if (raw === 'EMPLOYER') {
+    return 'EMPLOYER';
+  }
+  return 'JOB_SEEKER';
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
@@ -31,5 +49,6 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   if (typeof sub !== 'string' || typeof email !== 'string') {
     throw new Error('Invalid token payload');
   }
-  return { sub, email };
+  const role = parseRole((decoded as jwt.JwtPayload).role);
+  return { sub, email, role };
 }

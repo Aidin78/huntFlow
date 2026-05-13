@@ -1,9 +1,15 @@
-import 'dotenv/config';
+import path from 'path';
+import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
 
 import { sendError } from './lib/errors';
 import { authRouter } from './routes/auth';
+
+const repoRoot = path.resolve(__dirname, '../..');
+dotenv.config({ path: path.join(repoRoot, '.env') });
+dotenv.config({ path: path.join(repoRoot, '.env.local'), override: true });
+dotenv.config({ override: true });
 
 const app = express();
 

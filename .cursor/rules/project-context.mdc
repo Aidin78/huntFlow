@@ -5,6 +5,16 @@ alwaysApply: true
 
 # huntFlow (job application tracker)
 
+## User roles (product)
+
+The product has **three** user types:
+
+1. **Job seeker** — tracks and manages their own job applications (primary persona for now).
+2. **Employer** — hiring side (later / secondary for current roadmap).
+3. **Platform / content admin** — platform operations and content moderation (later).
+
+**Current focus:** most features and UX should prioritize **job seekers** unless explicitly scoped otherwise.
+
 ## Architecture
 
 - `web/`: Next.js App Router frontend
