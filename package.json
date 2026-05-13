@@ -15,6 +15,7 @@
     "db:generate": "npm --workspace @huntflow/db run prisma:generate",
     "db:migrate": "npm --workspace @huntflow/db run prisma:migrate",
     "db:deploy": "npm --workspace @huntflow/db run prisma:deploy",
-    "db:studio": "npm --workspace @huntflow/db run prisma:studio"
+    "db:studio": "npm --workspace @huntflow/db run prisma:studio",
+    "db:seed": "npm --workspace @huntflow/db run prisma:seed"
   }
 }

@@ -25,6 +25,20 @@ model User {
   tags            Tag[]
 }
 
+enum WorkArrangement {
+  REMOTE
+  HYBRID
+  ONSITE
+}
+
+enum ExperienceLevel {
+  INTERN
+  ENTRY
+  MID
+  SENIOR
+  LEAD
+}
+
 model Company {
   id        String   @id @default(uuid())
   name      String
@@ -35,8 +49,35 @@ model Company {
 
   contacts        Contact[]
   jobApplications JobApplication[]
+  jobListings     JobListing[]
 
   @@unique([name])
+}
+
+model JobListing {
+  id                String            @id @default(uuid())
+  title             String
+  summary           String?
+  city              String?
+  workArrangement   WorkArrangement   @default(ONSITE)
+  experienceLevel ExperienceLevel   @default(MID)
+  salaryText        String?
+  sourceUrl         String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  publishedAt DateTime @default(now())
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([city])
+  @@index([workArrangement])
+  @@index([experienceLevel])
+  @@index([title])
+  @@index([isActive, publishedAt])
 }
 
 model Contact {
