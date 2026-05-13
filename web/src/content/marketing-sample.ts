@@ -222,6 +222,7 @@ export const marketingFooter = {
         { label: "Your journey", href: "#path" },
         { label: "Features", href: "#features" },
         { label: "Why huntFlow?", href: "#why" },
+        { label: "Job board", href: "/jobs" },
         { label: "Sample listings", href: "#jobs" },
         { label: "Testimonials", href: "#testimonials" },
       ],

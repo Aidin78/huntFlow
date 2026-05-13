@@ -6,7 +6,7 @@ export function MarketingFooter() {
   return (
     <footer
       id="footer"
-      className="border-t border-zinc-200 bg-zinc-100/80 py-14 dark:border-zinc-800 dark:bg-zinc-900/40"
+      className="border-t border-zinc-200/80 bg-zinc-100/90 py-16 dark:border-zinc-800/80 dark:bg-zinc-900/50 sm:py-20"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
