@@ -15,17 +15,41 @@ model User {
   updatedAt DateTime @updatedAt
 
   jobApplications JobApplication[]
+  tags            Tag[]
 }
 
 model Company {
   id        String   @id @default(uuid())
   name      String
+  website   String?
+  linkedin  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  contacts        Contact[]
   jobApplications JobApplication[]
 
   @@unique([name])
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  name      String
+  title     String?
+  email     String?
+  phone     String?
+  linkedin  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  jobApplications JobApplicationContact[]
+
+  @@index([companyId])
+  @@index([email])
 }
 
 enum JobApplicationStatus {
@@ -37,12 +61,20 @@ enum JobApplicationStatus {
   ARCHIVED
 }
 
+enum ReminderStatus {
+  PENDING
+  DONE
+  CANCELLED
+}
+
 model JobApplication {
   id          String               @id @default(uuid())
   title       String
   status      JobApplicationStatus @default(APPLIED)
   appliedAt   DateTime?
   notes       String?
+  location    String?
+  salaryText  String?
 
   userId      String
   user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -53,8 +85,139 @@ model JobApplication {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
+  contacts     JobApplicationContact[]
+  interviews   Interview[]
+  reminders    Reminder[]
+  links        JobApplicationLink[]
+  attachments  Attachment[]
+  statusEvents JobApplicationStatusEvent[]
+  tags         JobApplicationTag[]
+
   @@index([userId])
   @@index([companyId])
   @@index([status])
+  @@index([appliedAt])
+  @@unique([userId, companyId, title])
+}
+
+model JobApplicationContact {
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  contactId        String
+  contact          Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  role             String? // e.g. Recruiter, Hiring Manager
+  createdAt        DateTime @default(now())
+
+  @@id([jobApplicationId, contactId])
+  @@index([contactId])
+}
+
+model Interview {
+  id              String   @id @default(uuid())
+  title           String   // e.g. "Tech interview", "HR screen"
+  scheduledAt     DateTime
+  durationMinutes Int?
+  location        String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+  @@index([scheduledAt])
+}
+
+model Reminder {
+  id          String         @id @default(uuid())
+  title       String
+  remindAt    DateTime
+  status      ReminderStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+  @@index([remindAt])
+  @@index([status])
+}
+
+model JobApplicationLink {
+  id          String   @id @default(uuid())
+  label       String?  // e.g. "Job post", "Company page", "Portfolio"
+  url         String
+  createdAt   DateTime @default(now())
+
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+  @@index([url])
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  filename     String
+  mimeType     String?
+  sizeBytes    Int?
+  storageKey   String? // later: S3 key/path, etc.
+  url          String? // later: signed URL or public URL
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+}
+
+model JobApplicationStatusEvent {
+  id        String               @id @default(uuid())
+  from      JobApplicationStatus?
+  to        JobApplicationStatus
+  at        DateTime             @default(now())
+  note      String?
+
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([jobApplicationId])
+  @@index([to])
+  @@index([at])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String
+  color     String? // e.g. hex "#AABBCC"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  jobApplications JobApplicationTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model JobApplicationTag {
+  jobApplicationId String
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  tagId            String
+  tag              Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime @default(now())
+
+  @@id([jobApplicationId, tagId])
+  @@index([tagId])
 }
 
