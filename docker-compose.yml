@@ -1,0 +1,19 @@
+name: huntflow
+
+services:
+  postgres:
+    image: hub.hamdocker.ir/library/postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: huntflow
+      POSTGRES_PASSWORD: huntflow
+      POSTGRES_DB: huntflow
+    # Bind to a non-default host port to avoid conflicts with other projects.
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+

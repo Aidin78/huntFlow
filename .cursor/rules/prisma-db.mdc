@@ -1,0 +1,14 @@
+---
+description: Prisma + Postgres conventions for packages/db
+globs: packages/db/**/*.{prisma,ts,json}
+alwaysApply: false
+---
+
+# Prisma / Postgres conventions
+
+- Prisma schema is the single source of truth for DB structure.
+- Prefer `uuid()` ids for public-facing entities.
+- Add indexes for foreign keys and commonly filtered fields.
+- Migrations are committed; local dev uses `prisma migrate dev`.
+- Access Prisma via `@huntflow/db` (don’t create new `PrismaClient` instances elsewhere).
+

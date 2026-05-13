@@ -1,0 +1,19 @@
+{
+  "name": "huntflow",
+  "private": true,
+  "workspaces": [
+    "web",
+    "api",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace web run dev",
+    "dev:api": "npm --workspace api run dev",
+    "dev": "npm run dev:api && npm run dev:web",
+    "lint:web": "npm --workspace web run lint",
+    "lint:api": "npm --workspace api run lint",
+    "db:generate": "npm --workspace @huntflow/db run prisma:generate",
+    "db:migrate": "npm --workspace @huntflow/db run prisma:migrate",
+    "db:studio": "npm --workspace @huntflow/db run prisma:studio"
+  }
+}

@@ -1,0 +1,13 @@
+---
+description: Next.js App Router conventions for web
+globs: web/**/*.{ts,tsx,css,md,mdx}
+alwaysApply: false
+---
+
+# Next.js (`web/`) conventions
+
+- Use App Router patterns: server components by default, client components only when needed (`"use client"`).
+- Put shared UI in `web/src/components/` and feature-specific code in `web/src/app/(...)` route groups when it grows.
+- Prefer `fetch` on the server and pass data down; don’t overuse client-side data fetching.
+- Keep SEO-friendly metadata using Next.js `metadata` where appropriate.
+

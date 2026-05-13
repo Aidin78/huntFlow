@@ -1,0 +1,15 @@
+---
+description: Express API conventions for api
+globs: api/**/*.{ts,js,json}
+alwaysApply: false
+---
+
+# Express API (`api/`) conventions
+
+- Keep routes under `/api/*` once we add real endpoints; reserve `/health` for infra checks.
+- Validate incoming requests with `zod` (body, params, query).
+- Return consistent error shapes:
+  - `{ error: { code, message, details? } }`
+- Don’t leak internal errors to clients; log server-side and map to a safe response.
+- Keep business logic out of route handlers (use `services/`).
+

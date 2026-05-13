@@ -1,0 +1,26 @@
+---
+description: Core context for the huntFlow codebase
+alwaysApply: true
+---
+
+# huntFlow (job application tracker)
+
+## Architecture
+
+- `web/`: Next.js App Router frontend
+- `api/`: Express backend (JSON REST)
+- `packages/db/`: Prisma schema + shared Prisma client
+- PostgreSQL via `docker-compose.yml`
+
+## Shared conventions
+
+- TypeScript everywhere.
+- Prefer small, composable modules and clear boundaries between `web`, `api`, and `packages/*`.
+- Don’t duplicate types between frontend/backend when it can live in a shared package (later we can add `packages/contracts`).
+- Never commit `.env` files. Use `.env.example` as the reference.
+
+## Runtime ports
+
+- API: `http://localhost:4000`
+- Web: `http://localhost:3000`
+

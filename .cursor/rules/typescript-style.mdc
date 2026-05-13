@@ -1,0 +1,14 @@
+---
+description: TypeScript standards (all packages)
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# TypeScript standards
+
+- Use `strict` TypeScript settings (don’t relax without a clear reason).
+- Prefer `zod` schemas at API boundaries (request parsing/validation).
+- Avoid `any`; use `unknown` + narrowing when needed.
+- Prefer named exports (default export only for Next.js pages/layouts where idiomatic).
+- Handle errors explicitly; never swallow exceptions silently.
+
