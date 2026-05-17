@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { RedirectIfAuthed } from "@/components/RedirectIfAuthed";
 import { loginUser } from "@/lib/auth-api";
 import { setAccessToken } from "@/lib/auth-token";
+import { dashboardHomeForRole } from "@/lib/dashboard-path";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { roleFromQuery, roleLabel, roleToQueryParam, type AppUserRole } from "@/lib/user-role";
 
@@ -37,7 +38,10 @@ function LoginForm() {
       const result = await loginUser({ email: email.trim(), password, role });
       if ("token" in result && "user" in result) {
         setAccessToken(result.token);
-        const next = safeRedirectPath(searchParams.get("next"));
+        const next = safeRedirectPath(
+          searchParams.get("next"),
+          dashboardHomeForRole(result.user.role),
+        );
         router.push(next);
         router.refresh();
         return;

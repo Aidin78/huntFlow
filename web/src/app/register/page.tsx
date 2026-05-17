@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { RedirectIfAuthed } from "@/components/RedirectIfAuthed";
 import { registerUser } from "@/lib/auth-api";
 import { setAccessToken } from "@/lib/auth-token";
+import { dashboardHomeForRole } from "@/lib/dashboard-path";
 import { roleFromQuery, roleLabel, roleToQueryParam, type AppUserRole } from "@/lib/user-role";
 
 function RegisterForm() {
@@ -48,7 +49,7 @@ function RegisterForm() {
       });
       if ("token" in result && "user" in result) {
         setAccessToken(result.token);
-        router.push("/dashboard");
+        router.push(dashboardHomeForRole(result.user.role));
         router.refresh();
         return;
       }

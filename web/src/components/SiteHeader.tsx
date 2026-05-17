@@ -50,7 +50,12 @@ export function SiteHeader() {
           </Link>
           {authed ? (
             <>
-              <Link href="/dashboard" className={navLinkClass(pathname === "/dashboard")}>
+              <Link
+                href="/dashboard"
+                className={navLinkClass(
+                  pathname === "/dashboard" || pathname.startsWith("/dashboard/"),
+                )}
+              >
                 Dashboard
               </Link>
               <button
