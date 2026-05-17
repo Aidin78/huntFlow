@@ -123,6 +123,8 @@ async function main() {
         experienceLevel: row.experienceLevel,
         salaryText: row.salaryText,
         companyId: company.id,
+        isActive: true,
+        publishedAt: new Date(),
       },
     });
   }

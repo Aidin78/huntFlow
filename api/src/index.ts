@@ -5,6 +5,7 @@ import express from 'express';
 
 import { sendError } from './lib/errors';
 import { authRouter } from './routes/auth';
+import { employerJobListingsRouter } from './routes/employerJobListings';
 import { jobListingsRouter } from './routes/jobListings';
 
 const repoRoot = path.resolve(__dirname, '../..');
@@ -25,6 +26,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRouter);
 app.use('/api', jobListingsRouter);
+app.use('/api', employerJobListingsRouter);
 
 app.get('/health', async (_req, res) => {
   try {

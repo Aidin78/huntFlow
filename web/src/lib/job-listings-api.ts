@@ -59,6 +59,48 @@ export type JobListingsQuery = {
   experience?: ExperienceLevel;
 };
 
+function readParam(
+  sp: URLSearchParams | Record<string, string | string[] | undefined>,
+  key: string,
+): string | undefined {
+  const raw = sp instanceof URLSearchParams ? sp.get(key) : sp[key];
+  if (typeof raw !== 'string') return undefined;
+  const t = raw.trim();
+  return t.length ? t : undefined;
+}
+
+export function jobListingsQueryFromSearchParams(
+  sp: URLSearchParams | Record<string, string | string[] | undefined>,
+): JobListingsQuery {
+  const workArrangement = readParam(sp, 'workArrangement');
+  const experience = readParam(sp, 'experience');
+
+  const wa =
+    workArrangement === 'REMOTE' || workArrangement === 'HYBRID' || workArrangement === 'ONSITE'
+      ? workArrangement
+      : undefined;
+  const ex =
+    experience === 'INTERN' ||
+    experience === 'ENTRY' ||
+    experience === 'MID' ||
+    experience === 'SENIOR' ||
+    experience === 'LEAD'
+      ? experience
+      : undefined;
+
+  const q = readParam(sp, 'q');
+  const job = readParam(sp, 'job');
+  const city = readParam(sp, 'city');
+
+  return {
+    ...(q ? { q } : {}),
+    ...(job ? { job } : {}),
+    ...(city ? { city } : {}),
+    ...(wa ? { workArrangement: wa } : {}),
+    ...(ex ? { experience: ex } : {}),
+  };
+}
+
 export function workArrangementLabel(w: WorkArrangement): string {
   switch (w) {
     case 'REMOTE':

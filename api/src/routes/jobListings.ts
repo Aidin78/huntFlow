@@ -86,6 +86,7 @@ jobListingsRouter.get('/job-listings', async (req, res) => {
 
   const where: Prisma.JobListingWhereInput = {
     isActive: true,
+    publishedAt: { not: null },
     ...(and.length ? { AND: and } : {}),
   };
 
@@ -108,7 +109,7 @@ jobListingsRouter.get('/job-listings', async (req, res) => {
         },
       }),
       prisma.jobListing.findMany({
-        where: { isActive: true },
+        where: { isActive: true, publishedAt: { not: null } },
         select: {
           city: true,
           title: true,
@@ -155,7 +156,7 @@ jobListingsRouter.get('/job-listings/:id', async (req, res) => {
 
   try {
     const listing = await prisma.jobListing.findFirst({
-      where: { id: parsed.data, isActive: true },
+      where: { id: parsed.data, isActive: true, publishedAt: { not: null } },
       select: listingDetailSelect,
     });
 
@@ -228,7 +229,7 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
 
   try {
     const listing = await prisma.jobListing.findFirst({
-      where: { id: parsed.data, isActive: true },
+      where: { id: parsed.data, isActive: true, publishedAt: { not: null } },
       select: {
         id: true,
         title: true,

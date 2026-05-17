@@ -23,6 +23,16 @@ model User {
 
   jobApplications JobApplication[]
   tags            Tag[]
+  employerProfile EmployerProfile?
+}
+
+model EmployerProfile {
+  userId    String  @id
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@index([companyId])
 }
 
 enum WorkArrangement {
@@ -42,14 +52,18 @@ enum ExperienceLevel {
 model Company {
   id        String   @id @default(uuid())
   name      String
+  tagline   String?
   website   String?
   linkedin  String?
+  locations String?
+  about     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  contacts        Contact[]
-  jobApplications JobApplication[]
-  jobListings     JobListing[]
+  contacts          Contact[]
+  jobApplications   JobApplication[]
+  jobListings       JobListing[]
+  employerProfiles  EmployerProfile[]
 
   @@unique([name])
 }
@@ -67,8 +81,8 @@ model JobListing {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  publishedAt DateTime @default(now())
-  isActive    Boolean  @default(true)
+  publishedAt DateTime?
+  isActive    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
