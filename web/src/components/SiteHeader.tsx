@@ -42,7 +42,10 @@ export function SiteHeader() {
           <span className="inline-block h-1.5 w-1.5 translate-y-px rounded-full bg-emerald-500 opacity-90 transition group-hover:scale-125" />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-1.5">
-          <Link href="/jobs" className={navLinkClass(pathname === "/jobs")}>
+          <Link
+            href="/jobs"
+            className={navLinkClass(pathname === "/jobs" || pathname.startsWith("/jobs/"))}
+          >
             Jobs
           </Link>
           {authed ? (

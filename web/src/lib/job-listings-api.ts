@@ -3,6 +3,13 @@ import { getPublicApiBaseUrl } from '@/lib/api-base';
 export type WorkArrangement = 'REMOTE' | 'HYBRID' | 'ONSITE';
 export type ExperienceLevel = 'INTERN' | 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD';
 
+export type JobListingCompany = {
+  id: string;
+  name: string;
+  website?: string | null;
+  linkedin?: string | null;
+};
+
 export type JobListingItem = {
   id: string;
   title: string;
@@ -13,7 +20,23 @@ export type JobListingItem = {
   salaryText: string | null;
   sourceUrl: string | null;
   publishedAt: string;
-  company: { id: string; name: string };
+  company: JobListingCompany;
+};
+
+export type JobListingDetail = JobListingItem;
+
+export type JobApplyStatus = {
+  applied: boolean;
+  application: { id: string; status: string; appliedAt: string | null } | null;
+};
+
+export type JobApplyResult = {
+  alreadyApplied: boolean;
+  application: { id: string; status: string; appliedAt: string | null; title?: string };
+};
+
+export type ApiErrorBody = {
+  error?: { code?: string; message?: string };
 };
 
 export type JobListingsFilters = {
@@ -81,4 +104,53 @@ export async function fetchJobListings(query: JobListingsQuery): Promise<JobList
     throw new Error(`Job listings request failed (${res.status})`);
   }
   return res.json() as Promise<JobListingsResponse>;
+}
+
+export async function fetchJobListing(id: string): Promise<JobListingDetail | null> {
+  const res = await fetch(`${getPublicApiBaseUrl()}/api/job-listings/${encodeURIComponent(id)}`, {
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Job listing request failed (${res.status})`);
+  }
+  const data = (await res.json()) as { item: JobListingDetail };
+  return data.item;
+}
+
+export async function fetchJobApplyStatus(
+  listingId: string,
+  token: string,
+): Promise<JobApplyStatus | ApiErrorBody> {
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/job-listings/${encodeURIComponent(listingId)}/apply-status`,
+    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+  );
+  const data = (await res.json()) as JobApplyStatus & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function applyToJobListing(
+  listingId: string,
+  token: string,
+): Promise<JobApplyResult | ApiErrorBody> {
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/job-listings/${encodeURIComponent(listingId)}/apply`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  const data = (await res.json()) as JobApplyResult & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export function formatPublishedDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }

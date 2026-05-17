@@ -1,9 +1,25 @@
 import { Router } from 'express';
-import { prisma } from '@huntflow/db';
+import { prisma, UserRole } from '@huntflow/db';
 import type { Prisma } from '@huntflow/db';
 import { z } from 'zod';
 
 import { sendError } from '../lib/errors';
+import { requireAuth } from '../middleware/requireAuth';
+
+const listingIdSchema = z.string().uuid();
+
+const listingDetailSelect = {
+  id: true,
+  title: true,
+  summary: true,
+  city: true,
+  workArrangement: true,
+  experienceLevel: true,
+  salaryText: true,
+  sourceUrl: true,
+  publishedAt: true,
+  company: { select: { id: true, name: true, website: true, linkedin: true } },
+} satisfies Prisma.JobListingSelect;
 
 const workArrangementSchema = z.enum(['REMOTE', 'HYBRID', 'ONSITE']).optional();
 const experienceSchema = z.enum(['INTERN', 'ENTRY', 'MID', 'SENIOR', 'LEAD']).optional();
@@ -129,3 +145,179 @@ jobListingsRouter.get('/job-listings', async (req, res) => {
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not load job listings');
   }
 });
+
+jobListingsRouter.get('/job-listings/:id', async (req, res) => {
+  const parsed = listingIdSchema.safeParse(req.params.id);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid job listing id');
+    return;
+  }
+
+  try {
+    const listing = await prisma.jobListing.findFirst({
+      where: { id: parsed.data, isActive: true },
+      select: listingDetailSelect,
+    });
+
+    if (!listing) {
+      sendError(res, 404, 'NOT_FOUND', 'Job listing not found');
+      return;
+    }
+
+    res.json({ item: listing });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load job listing');
+  }
+});
+
+jobListingsRouter.get('/job-listings/:id/apply-status', requireAuth, async (req, res) => {
+  const parsed = listingIdSchema.safeParse(req.params.id);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid job listing id');
+    return;
+  }
+
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  try {
+    const application = await prisma.jobApplication.findFirst({
+      where: { userId, jobListingId: parsed.data },
+      select: { id: true, status: true, appliedAt: true },
+    });
+
+    res.json({
+      applied: Boolean(application),
+      application: application ?? null,
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load apply status');
+  }
+});
+
+jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) => {
+  const parsed = listingIdSchema.safeParse(req.params.id);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid job listing id');
+    return;
+  }
+
+  const userId = req.userId;
+  const userRole = req.userRole;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  if (userRole !== UserRole.JOB_SEEKER) {
+    sendError(
+      res,
+      403,
+      'FORBIDDEN',
+      'Only job seeker accounts can apply to listings. Sign in as a job seeker or create a job seeker account.',
+    );
+    return;
+  }
+
+  try {
+    const listing = await prisma.jobListing.findFirst({
+      where: { id: parsed.data, isActive: true },
+      select: {
+        id: true,
+        title: true,
+        city: true,
+        workArrangement: true,
+        salaryText: true,
+        sourceUrl: true,
+        companyId: true,
+      },
+    });
+
+    if (!listing) {
+      sendError(res, 404, 'NOT_FOUND', 'Job listing not found');
+      return;
+    }
+
+    const existing = await prisma.jobApplication.findFirst({
+      where: { userId, jobListingId: listing.id },
+      select: { id: true, status: true, appliedAt: true },
+    });
+
+    if (existing) {
+      res.status(200).json({
+        alreadyApplied: true,
+        application: existing,
+      });
+      return;
+    }
+
+    const locationParts = [listing.city, listing.workArrangement].filter(Boolean);
+    const location = locationParts.length ? locationParts.join(' · ') : null;
+
+    const application = await prisma.$transaction(async (tx) => {
+      const created = await tx.jobApplication.create({
+        data: {
+          title: listing.title,
+          status: 'APPLIED',
+          appliedAt: new Date(),
+          location,
+          salaryText: listing.salaryText,
+          userId,
+          companyId: listing.companyId,
+          jobListingId: listing.id,
+        },
+        select: { id: true, status: true, appliedAt: true, title: true },
+      });
+
+      if (listing.sourceUrl) {
+        await tx.jobApplicationLink.create({
+          data: {
+            jobApplicationId: created.id,
+            label: 'Original posting',
+            url: listing.sourceUrl,
+          },
+        });
+      }
+
+      await tx.jobApplicationStatusEvent.create({
+        data: {
+          jobApplicationId: created.id,
+          from: null,
+          to: 'APPLIED',
+          note: 'Applied via huntFlow job board',
+        },
+      });
+
+      return created;
+    });
+
+    res.status(201).json({
+      alreadyApplied: false,
+      application,
+    });
+  } catch (e: unknown) {
+    if (isPrismaUniqueViolation(e)) {
+      sendError(res, 409, 'CONFLICT', 'You have already applied to this role');
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not submit application');
+  }
+});
+
+function isPrismaUniqueViolation(e: unknown): boolean {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'code' in e &&
+    (e as { code: string }).code === 'P2002'
+  );
+}

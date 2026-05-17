@@ -72,6 +72,8 @@ model JobListing {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  applications JobApplication[]
+
   @@index([companyId])
   @@index([city])
   @@index([workArrangement])
@@ -130,6 +132,9 @@ model JobApplication {
   companyId   String
   company     Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
+  jobListingId String?
+  jobListing   JobListing?         @relation(fields: [jobListingId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -145,7 +150,9 @@ model JobApplication {
   @@index([companyId])
   @@index([status])
   @@index([appliedAt])
+  @@index([jobListingId])
   @@unique([userId, companyId, title])
+  @@unique([userId, jobListingId])
 }
 
 model JobApplicationContact {

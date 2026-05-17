@@ -58,7 +58,12 @@ function JobCard({ row, index }: { row: JobListingItem; index: number }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{row.title}</h2>
+              <Link
+                href={`/jobs/${row.id}`}
+                className="text-lg font-semibold tracking-tight text-zinc-900 transition group-hover:text-emerald-800 dark:text-zinc-50 dark:group-hover:text-emerald-300"
+              >
+                {row.title}
+              </Link>
             </div>
             <p className="mt-0.5 text-sm font-medium text-zinc-600 dark:text-zinc-400">{row.company.name}</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -86,18 +91,12 @@ function JobCard({ row, index }: { row: JobListingItem; index: number }) {
             </p>
           </div>
         </div>
-        {row.sourceUrl ? (
-          <a
-            href={row.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white sm:mt-1"
-          >
-            Apply
-          </a>
-        ) : (
-          <span className="hidden text-xs font-medium text-zinc-400 sm:inline sm:shrink-0">No external link</span>
-        )}
+        <Link
+          href={`/jobs/${row.id}`}
+          className="inline-flex shrink-0 items-center justify-center self-start rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white sm:mt-1"
+        >
+          View role
+        </Link>
       </div>
     </li>
   );
