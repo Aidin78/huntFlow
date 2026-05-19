@@ -5,6 +5,7 @@ import express from 'express';
 
 import { sendError } from './lib/errors';
 import { authRouter } from './routes/auth';
+import { employerApplicationsRouter } from './routes/employerApplications';
 import { employerJobListingsRouter } from './routes/employerJobListings';
 import { jobListingsRouter } from './routes/jobListings';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api', jobListingsRouter);
 app.use('/api', employerJobListingsRouter);
+app.use('/api', employerApplicationsRouter);
 app.use('/api', seekerApplicationsRouter);
 
 app.get('/health', async (_req, res) => {

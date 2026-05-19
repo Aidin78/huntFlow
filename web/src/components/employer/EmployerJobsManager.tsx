@@ -220,7 +220,19 @@ export function EmployerJobsManager() {
                     </span>
                   </td>
                   <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400">{locationLabel(job)}</td>
-                  <td className="px-5 py-4 tabular-nums">{job.applicantCount}</td>
+                  <td className="px-5 py-4 tabular-nums">
+                    {job.applicantCount > 0 ? (
+                      <ActionLink
+                        href={`/dashboard/employer/applications?job=${encodeURIComponent(job.id)}`}
+                        actionVariant="link"
+                        className="tabular-nums"
+                      >
+                        {job.applicantCount}
+                      </ActionLink>
+                    ) : (
+                      job.applicantCount
+                    )}
+                  </td>
                   <td className="px-5 py-4 text-zinc-500">{formatDate(job.publishedAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1.5">
