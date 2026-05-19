@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { Button, LinkButton, buttonClass } from "@/components/ui/button";
 import { fetchMe } from "@/lib/auth-api";
 import { getAccessToken } from "@/lib/auth-token";
 import { applyToJobListing, fetchJobApplyStatus } from "@/lib/job-listings-api";
@@ -104,7 +105,7 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
       <button
         type="button"
         disabled
-        className={`inline-flex items-center justify-center rounded-full bg-zinc-200 font-semibold text-zinc-500 ${sizeClass} ${className}`}
+        className={buttonClass("secondary", size === "large" ? "lg" : "md", `opacity-70 ${className}`)}
       >
         …
       </button>
@@ -114,12 +115,9 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
   if (!authed) {
     return (
       <div className={`flex flex-col gap-2 ${className}`}>
-        <Link
-          href={loginHref}
-          className={`inline-flex items-center justify-center rounded-full bg-emerald-600 font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 ${sizeClass}`}
-        >
+        <LinkButton href={loginHref} variant="emerald" size={size === "large" ? "lg" : "md"}>
           Sign in to apply
-        </Link>
+        </LinkButton>
         <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
           You need a job seeker account to track this application in huntFlow.
         </p>
@@ -133,12 +131,9 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Employer accounts cannot apply to listings. Switch to a job seeker account.
         </p>
-        <Link
-          href={loginHref}
-          className={`inline-flex items-center justify-center rounded-full border border-zinc-300 font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-800 ${sizeClass}`}
-        >
+        <LinkButton href={loginHref} variant="secondary" size={size === "large" ? "lg" : "md"}>
           Sign in as job seeker
-        </Link>
+        </LinkButton>
       </div>
     );
   }
@@ -152,8 +147,8 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
           Applied — in your pipeline
         </span>
         <Link
-          href="/dashboard"
-          className="text-center text-xs font-semibold text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400"
+          href="/dashboard/seeker"
+          className="text-center text-xs font-semibold text-emerald-700 underline-offset-4 transition hover:text-emerald-800 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300"
         >
           Open dashboard
         </Link>
@@ -168,14 +163,16 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
           {error}
         </p>
       ) : null}
-      <button
+      <Button
         type="button"
+        variant="emerald"
+        size={size === "large" ? "lg" : "md"}
         onClick={() => void handleApply()}
         disabled={applying}
-        className={`inline-flex items-center justify-center rounded-full bg-emerald-600 font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:opacity-60 ${sizeClass}`}
+        className="w-full sm:w-auto"
       >
         {applying ? "Applying…" : "Apply with huntFlow"}
-      </button>
+      </Button>
     </div>
   );
 }

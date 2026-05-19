@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 
+import { Button } from "@/components/ui/button";
 import type { JobListingFormInput } from "@/lib/employer-job-listings-api";
 import type { ExperienceLevel, WorkArrangement } from "@/lib/job-listings-api";
 import { experienceLabel, workArrangementLabel } from "@/lib/job-listings-api";
@@ -147,20 +148,12 @@ export function JobListingForm({
       </div>
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 dark:border-zinc-600 dark:text-zinc-300"
-        >
+        <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
+        </Button>
+        <Button type="submit" disabled={loading} size="sm">
           {loading ? "Saving…" : submitLabel}
-        </button>
+        </Button>
       </div>
     </form>
   );

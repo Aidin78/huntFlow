@@ -4,24 +4,40 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { buttonClass, joinClasses } from "@/components/ui/button";
+import { fetchMe } from "@/lib/auth-api";
 import { clearAccessToken, getAccessToken } from "@/lib/auth-token";
+import { dashboardHomeForRole } from "@/lib/dashboard-path";
 
 function navLinkClass(active: boolean) {
-  return [
-    "rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
+  const base =
+    "rounded-full px-3.5 py-2 text-sm font-semibold transition-all duration-200 ease-out active:scale-[0.98]";
+  return joinClasses(
+    base,
     active
-      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
-  ].join(" ");
+      ? "bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 hover:-translate-y-px dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+      : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+  );
 }
 
 export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const [authed, setAuthed] = useState(false);
+  const [dashboardHref, setDashboardHref] = useState("/dashboard");
 
   useEffect(() => {
-    setAuthed(Boolean(getAccessToken()));
+    const token = getAccessToken();
+    setAuthed(Boolean(token));
+    if (!token) return;
+    let cancelled = false;
+    void fetchMe(token).then((result) => {
+      if (cancelled || !("user" in result) || !result.user) return;
+      setDashboardHref(dashboardHomeForRole(result.user.role));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   function signOut() {
@@ -51,7 +67,7 @@ export function SiteHeader() {
           {authed ? (
             <>
               <Link
-                href="/dashboard"
+                href={dashboardHref}
                 className={navLinkClass(
                   pathname === "/dashboard" || pathname.startsWith("/dashboard/"),
                 )}
@@ -61,7 +77,7 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={signOut}
-                className="ml-1 rounded-full border border-zinc-300 bg-transparent px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                className={buttonClass("secondary", "sm", "ml-1")}
               >
                 Sign out
               </button>
@@ -71,10 +87,7 @@ export function SiteHeader() {
               <Link href="/login" className={navLinkClass(pathname === "/login")}>
                 Sign in
               </Link>
-              <Link
-                href="/register"
-                className="ml-0.5 rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-              >
+              <Link href="/register" className={buttonClass("primary", "sm", "ml-0.5 shadow-sm")}>
                 Get started
               </Link>
             </>

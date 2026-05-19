@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { CompanyRequiredAlert } from "@/components/employer/CompanyRequiredAlert";
 import { JobListingForm } from "@/components/employer/JobListingForm";
+import { ActionButton, ActionLink, Button, LinkButton } from "@/components/ui/button";
 import { isEmployerCompanyComplete } from "@/lib/employer-company";
 import {
   createEmployerJobListing,
@@ -175,21 +175,17 @@ export function EmployerJobsManager() {
       ) : null}
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <button
+        <Button
           type="button"
           onClick={openCreate}
           disabled={!companyComplete}
           title={!companyComplete ? "Complete your company profile first" : undefined}
-          className="inline-flex rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
         >
           + New posting
-        </button>
-        <Link
-          href="/jobs"
-          className="inline-flex rounded-full border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 dark:border-zinc-600 dark:text-zinc-200"
-        >
+        </Button>
+        <LinkButton href="/jobs" variant="secondary">
           View public job board
-        </Link>
+        </LinkButton>
       </div>
 
       {loading ? (
@@ -228,56 +224,45 @@ export function EmployerJobsManager() {
                   <td className="px-5 py-4 text-zinc-500">{formatDate(job.publishedAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(job)}
-                        className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      >
+                      <ActionButton type="button" onClick={() => openEdit(job)}>
                         Edit
-                      </button>
+                      </ActionButton>
                       {job.status === "DRAFT" ? (
                         <>
-                          <button
+                          <ActionButton
                             type="button"
+                            actionVariant="primary"
                             onClick={() => void handlePublish(job)}
-                            className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
                           >
                             Publish
-                          </button>
-                          <button
+                          </ActionButton>
+                          <ActionButton
                             type="button"
+                            actionVariant="danger"
                             onClick={() => void handleDelete(job)}
-                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
                           >
                             Delete
-                          </button>
+                          </ActionButton>
                         </>
                       ) : null}
                       {job.status === "PUBLISHED" ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleDeactivate(job)}
-                          className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300"
-                        >
+                        <ActionButton type="button" onClick={() => void handleDeactivate(job)}>
                           Deactivate
-                        </button>
+                        </ActionButton>
                       ) : null}
                       {job.status === "DEACTIVATED" ? (
-                        <button
+                        <ActionButton
                           type="button"
+                          actionVariant="primary"
                           onClick={() => void handlePublish(job)}
-                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
                         >
                           Republish
-                        </button>
+                        </ActionButton>
                       ) : null}
                       {job.status === "PUBLISHED" ? (
-                        <Link
-                          href={`/jobs/${job.id}`}
-                          className="rounded-lg px-2.5 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-50 dark:text-sky-400"
-                        >
+                        <ActionLink href={`/jobs/${job.id}`} actionVariant="link">
                           View live
-                        </Link>
+                        </ActionLink>
                       ) : null}
                     </div>
                   </td>

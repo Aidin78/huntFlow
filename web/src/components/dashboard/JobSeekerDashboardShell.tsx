@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import { Button, joinClasses } from "@/components/ui/button";
-import { employerNavItems } from "@/content/employer-dashboard-sample";
+import { Button } from "@/components/ui/button";
+import { seekerNavItems } from "@/content/seeker-dashboard-nav";
 import type { AuthUser } from "@/lib/auth-api";
 import { clearAccessToken } from "@/lib/auth-token";
 import { roleLabel } from "@/lib/user-role";
@@ -17,43 +17,23 @@ function navIcon(id: string) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h10M4 18h7" />
         </svg>
       );
-    case "jobs":
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
-        </svg>
-      );
     case "applications":
       return (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
           />
         </svg>
       );
-    case "company":
+    case "jobs":
       return (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
-      );
-    case "team":
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
       );
@@ -72,18 +52,18 @@ function navIcon(id: string) {
 }
 
 function isNavActive(pathname: string, href: string): boolean {
-  if (href === "/dashboard/employer") {
+  if (href === "/dashboard/seeker") {
     return pathname === href;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-type EmployerDashboardShellProps = {
+type JobSeekerDashboardShellProps = {
   user: AuthUser;
   children: React.ReactNode;
 };
 
-export function EmployerDashboardShell({ user, children }: EmployerDashboardShellProps) {
+export function JobSeekerDashboardShell({ user, children }: JobSeekerDashboardShellProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -100,24 +80,23 @@ export function EmployerDashboardShell({ user, children }: EmployerDashboardShel
           <Link href="/" className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             huntFlow
           </Link>
-          <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-400">
-            Employer
+          <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
+            Job seeker
           </p>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Employer dashboard">
-          {employerNavItems.map((item) => {
-            const active = isNavActive(pathname, item.href);
+        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Job seeker dashboard">
+          {seekerNavItems.map((item) => {
+            const active = !item.external && isNavActive(pathname, item.href);
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={joinClasses(
-                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                   active
-                    ? "bg-zinc-900 text-white shadow-md hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100",
-                )}
+                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500"
+                    : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+                }`}
                 title={item.description}
               >
                 {navIcon(item.id)}
@@ -143,8 +122,8 @@ export function EmployerDashboardShell({ user, children }: EmployerDashboardShel
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b border-zinc-200/80 bg-white/80 px-4 py-3 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/80 lg:hidden">
-          <Link href="/dashboard/employer" className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            huntFlow · Employer
+          <Link href="/dashboard/seeker" className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            huntFlow · Job seeker
           </Link>
           <Button variant="ghost" size="xs" onClick={signOut}>
             Sign out
@@ -153,20 +132,19 @@ export function EmployerDashboardShell({ user, children }: EmployerDashboardShel
 
         <nav
           className="flex gap-1 overflow-x-auto border-b border-zinc-200/80 bg-white/80 px-2 py-2 dark:border-zinc-800/80 dark:bg-zinc-950/80 lg:hidden"
-          aria-label="Employer sections (mobile)"
+          aria-label="Job seeker sections (mobile)"
         >
-          {employerNavItems.map((item) => {
-            const active = isNavActive(pathname, item.href);
+          {seekerNavItems.map((item) => {
+            const active = !item.external && isNavActive(pathname, item.href);
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={joinClasses(
-                  "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
                   active
-                    ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800",
-                )}
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                }`}
               >
                 {item.label}
               </Link>

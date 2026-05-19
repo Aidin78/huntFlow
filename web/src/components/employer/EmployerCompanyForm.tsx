@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 
+import { Button } from "@/components/ui/button";
 import type { CompanyFormInput } from "@/lib/employer-job-listings-api";
 
 const fieldClass =
@@ -130,13 +131,9 @@ export function EmployerCompanyForm({
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-full bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+      <Button type="submit" disabled={loading}>
         {loading ? "Saving…" : submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

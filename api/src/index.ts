@@ -7,6 +7,7 @@ import { sendError } from './lib/errors';
 import { authRouter } from './routes/auth';
 import { employerJobListingsRouter } from './routes/employerJobListings';
 import { jobListingsRouter } from './routes/jobListings';
+import { seekerApplicationsRouter } from './routes/seekerApplications';
 
 const repoRoot = path.resolve(__dirname, '../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api', jobListingsRouter);
 app.use('/api', employerJobListingsRouter);
+app.use('/api', seekerApplicationsRouter);
 
 app.get('/health', async (_req, res) => {
   try {

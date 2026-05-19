@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { LinkButton } from "@/components/ui/button";
 import { companyProfileChecklist } from "@/lib/employer-company";
 import type { EmployerCompany } from "@/lib/employer-job-listings-api";
 
@@ -48,12 +47,14 @@ export function CompanyRequiredAlert({
               {checklist.about ? "✓" : "○"} About (at least 20 characters)
             </li>
           </ul>
-          <Link
+          <LinkButton
             href={href}
-            className="mt-5 inline-flex rounded-full bg-amber-900 px-5 py-2.5 text-sm font-semibold text-amber-50 hover:bg-amber-800 dark:bg-amber-100 dark:text-amber-950 dark:hover:bg-white"
+            variant="primary"
+            size="md"
+            className="mt-5 bg-amber-900 text-amber-50 hover:bg-amber-800 dark:bg-amber-100 dark:text-amber-950 dark:hover:bg-white"
           >
             Complete company profile
-          </Link>
+          </LinkButton>
         </div>
       </div>
     </div>
