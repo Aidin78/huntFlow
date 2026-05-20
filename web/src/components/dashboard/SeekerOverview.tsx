@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { DashboardStatCard } from "@/components/dashboard/dashboard-ui";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { ActionLink, LinkButton } from "@/components/ui/button";
-import {
-  applicationStatusClass,
-  applicationStatusLabel,
-  fetchSeekerApplications,
-  type SeekerApplication,
-} from "@/lib/seeker-applications-api";
+import { fetchSeekerApplications, type SeekerApplication } from "@/lib/seeker-applications-api";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -55,6 +54,11 @@ export function SeekerOverview() {
         badge="Job seeker"
         title="Your job search"
         subtitle="Track applications you submit on huntFlow and discover new roles on the board."
+        actions={
+          <LinkButton href="/jobs" variant="success" size="md">
+            Browse jobs
+          </LinkButton>
+        }
       />
 
       {error ? (
@@ -64,20 +68,10 @@ export function SeekerOverview() {
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Active applications", value: loading ? "…" : String(active) },
-          { label: "Interviews", value: loading ? "…" : String(interviews) },
-          { label: "Offers", value: loading ? "…" : String(offers) },
-          { label: "Total tracked", value: loading ? "…" : String(items.length) },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-3xl border border-zinc-200/80 bg-white/90 p-5 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{stat.label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{stat.value}</p>
-          </div>
-        ))}
+        <DashboardStatCard label="Active applications" value={loading ? "…" : String(active)} tone="emerald" />
+        <DashboardStatCard label="Interviews" value={loading ? "…" : String(interviews)} tone="violet" />
+        <DashboardStatCard label="Offers" value={loading ? "…" : String(offers)} tone="sky" />
+        <DashboardStatCard label="Total tracked" value={loading ? "…" : String(items.length)} tone="default" />
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
@@ -87,54 +81,63 @@ export function SeekerOverview() {
         <LinkButton href="/dashboard/seeker/applications" variant="secondary" size="md">
           View all applications
         </LinkButton>
+        <LinkButton href="/dashboard/seeker/settings" variant="secondary" size="md">
+          Edit profile
+        </LinkButton>
       </div>
 
-      <section className="mt-10 rounded-3xl border border-zinc-200/80 bg-white/90 p-6 dark:border-zinc-800/80 dark:bg-zinc-900/60">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Recent applications</h2>
+      <DashboardCard title="Recent applications" accent="emerald" className="mt-10">
+        <div className="mb-4 flex justify-end">
           <LinkButton href="/dashboard/seeker/applications" variant="link" size="sm">
-            View all
+            View all →
           </LinkButton>
         </div>
 
         {loading ? (
-          <p className="mt-4 text-sm text-zinc-500">Loading…</p>
-        ) : items.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700">
-            <p className="font-medium text-zinc-800 dark:text-zinc-200">No applications yet</p>
-            <p className="mt-2 text-sm text-zinc-500">Apply to a role on the job board to start tracking it here.</p>
-            <LinkButton href="/jobs" variant="emerald" size="md" className="mt-5">
-              Find roles
-            </LinkButton>
+          <div className="space-y-3">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="h-14 animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800/50" />
+            ))}
           </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            title="No applications yet"
+            description="Apply to a role on the job board to start tracking it here."
+            action={
+              <LinkButton href="/jobs" variant="emerald" size="md">
+                Find roles
+              </LinkButton>
+            }
+          />
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
+          <ul className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
             {items.slice(0, 5).map((row) => (
-              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0">
+              <li
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
+              >
                 <div className="min-w-0">
-                  <p className="font-medium text-zinc-900 dark:text-zinc-100">{row.title}</p>
-                  <p className="text-xs text-zinc-500">
-                    {row.company.name}
-                    {row.appliedAt ? ` · Applied ${formatDate(row.appliedAt)}` : null}
+                  <p className="font-semibold text-zinc-900 dark:text-zinc-100">{row.title}</p>
+                  <p className="text-sm text-sky-800 dark:text-sky-300">{row.company.name}</p>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    {row.appliedAt ? `Applied ${formatDate(row.appliedAt)}` : "—"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${applicationStatusClass(row.status)}`}
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge status={row.status} />
+                  <ActionLink
+                    href={`/dashboard/seeker/applications/${row.id}`}
+                    actionVariant="primary"
+                    className="px-3 py-1.5"
                   >
-                    {applicationStatusLabel(row.status)}
-                  </span>
-                  {row.jobListing ? (
-                    <ActionLink href={`/jobs/${row.jobListing.id}`} actionVariant="link">
-                      View job
-                    </ActionLink>
-                  ) : null}
+                    Open
+                  </ActionLink>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </DashboardCard>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 
+import { LinkedInIcon, LocationIcon, PortfolioIcon } from "@/components/dashboard/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import type { CompanyFormInput } from "@/lib/employer-job-listings-api";
 
@@ -89,7 +90,8 @@ export function EmployerCompanyForm({
       </div>
 
       <div>
-        <label htmlFor="locations" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <label htmlFor="locations" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <LocationIcon className="h-3.5 w-3.5" />
           Locations
         </label>
         <input
@@ -104,7 +106,8 @@ export function EmployerCompanyForm({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="website" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <label htmlFor="website" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <PortfolioIcon className="h-3.5 w-3.5" />
             Website
           </label>
           <input
@@ -117,7 +120,8 @@ export function EmployerCompanyForm({
           />
         </div>
         <div>
-          <label htmlFor="linkedin" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <label htmlFor="linkedin" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <LinkedInIcon className="h-3.5 w-3.5" />
             LinkedIn
           </label>
           <input

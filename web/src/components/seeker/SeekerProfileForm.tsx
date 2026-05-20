@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { LocationIcon, PhoneIcon, SocialInput } from "@/components/dashboard/dashboard-ui";
 import { Button } from "@/components/ui/button";
 import {
   deleteSeekerResume,
@@ -13,7 +15,23 @@ import {
 } from "@/lib/seeker-profile-api";
 
 const fieldClass =
-  "mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
+  "mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
+
+function ProfileIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
+    </svg>
+  );
+}
+
+function ResumeIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+    </svg>
+  );
+}
 
 function profileToInput(profile: SeekerProfile | null): SeekerProfileInput {
   return {
@@ -116,18 +134,24 @@ export function SeekerProfileForm() {
   }
 
   if (loading) {
-    return <p className="text-sm text-zinc-500">Loading profile…</p>;
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        {[1, 2].map((n) => (
+          <div key={n} className="h-64 animate-pulse rounded-3xl bg-white/60 dark:bg-zinc-900/40" />
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <form onSubmit={(e) => void handleSave(e)} className="rounded-3xl border border-zinc-200/80 bg-white/90 p-6 dark:border-zinc-800/80 dark:bg-zinc-900/60">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Profile</h3>
-        <p className="mt-1 text-xs text-zinc-500">
-          Employers see this when you apply. Your resume is attached automatically if uploaded.
-        </p>
-
-        <div className="mt-5 space-y-4">
+    <div className="grid gap-6 lg:grid-cols-2">
+      <DashboardCard
+        title="Profile"
+        description="Employers see this when you apply. Your resume is attached automatically if uploaded."
+        icon={<ProfileIcon />}
+        accent="sky"
+      >
+        <form onSubmit={(e) => void handleSave(e)} className="space-y-4">
           <div>
             <label htmlFor="headline" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Headline
@@ -141,8 +165,10 @@ export function SeekerProfileForm() {
               placeholder="e.g. Senior backend engineer · Berlin"
             />
           </div>
+
           <div>
-            <label htmlFor="location" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <label htmlFor="location" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <LocationIcon className="h-3.5 w-3.5" />
               Location
             </label>
             <input
@@ -153,8 +179,10 @@ export function SeekerProfileForm() {
               className={fieldClass}
             />
           </div>
+
           <div>
-            <label htmlFor="phone" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <label htmlFor="phone" className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <PhoneIcon className="h-3.5 w-3.5" />
               Phone
             </label>
             <input
@@ -165,6 +193,7 @@ export function SeekerProfileForm() {
               className={fieldClass}
             />
           </div>
+
           <div>
             <label htmlFor="bio" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
               About
@@ -173,68 +202,69 @@ export function SeekerProfileForm() {
               id="bio"
               value={form.bio ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-              rows={5}
+              rows={4}
               maxLength={4000}
               className={fieldClass}
             />
           </div>
-          <div>
-            <label htmlFor="linkedinUrl" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              LinkedIn URL
-            </label>
-            <input
+
+          <div className="space-y-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Links & social</p>
+            <SocialInput
               id="linkedinUrl"
-              type="url"
+              kind="linkedin"
               value={form.linkedinUrl ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, linkedinUrl: e.target.value }))}
-              className={fieldClass}
+              onChange={(v) => setForm((f) => ({ ...f, linkedinUrl: v }))}
             />
-          </div>
-          <div>
-            <label htmlFor="portfolioUrl" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Portfolio URL
-            </label>
-            <input
+            <SocialInput
               id="portfolioUrl"
-              type="url"
+              kind="portfolio"
               value={form.portfolioUrl ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, portfolioUrl: e.target.value }))}
-              className={fieldClass}
+              onChange={(v) => setForm((f) => ({ ...f, portfolioUrl: v }))}
             />
-          </div>
-          <div>
-            <label htmlFor="githubUrl" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              GitHub URL
-            </label>
-            <input
+            <SocialInput
               id="githubUrl"
-              type="url"
+              kind="github"
               value={form.githubUrl ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, githubUrl: e.target.value }))}
-              className={fieldClass}
+              onChange={(v) => setForm((f) => ({ ...f, githubUrl: v }))}
             />
           </div>
-        </div>
 
-        {error ? <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-        {success ? <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-400">{success}</p> : null}
-
-        <Button type="submit" className="mt-6" disabled={saving}>
-          {saving ? "Saving…" : "Save profile"}
-        </Button>
-      </form>
-
-      <section className="rounded-3xl border border-zinc-200/80 bg-white/90 p-6 dark:border-zinc-800/80 dark:bg-zinc-900/60">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Resume</h3>
-        <p className="mt-1 text-xs text-zinc-500">PDF or DOCX, max 5 MB. Included when you apply.</p>
-
-        {profile?.resume ? (
-          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-950/50">
-            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{profile.resume.filename}</p>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              {(profile.resume.sizeBytes / 1024).toFixed(0)} KB
+          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {success ? (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300">
+              {success}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+          ) : null}
+
+          <Button type="submit" variant="success" disabled={saving}>
+            {saving ? "Saving…" : "Save profile"}
+          </Button>
+        </form>
+      </DashboardCard>
+
+      <DashboardCard
+        title="Resume"
+        description="PDF or DOCX, max 5 MB. Included when you apply."
+        icon={<ResumeIcon />}
+        accent="emerald"
+      >
+        {profile?.resume ? (
+          <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                <ResumeIcon />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  {profile.resume.filename}
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {(profile.resume.sizeBytes / 1024).toFixed(0)} KB
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="secondary"
@@ -246,7 +276,7 @@ export function SeekerProfileForm() {
               </Button>
               <Button
                 type="button"
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 disabled={uploading}
                 onClick={() => void handleRemoveResume()}
@@ -256,13 +286,17 @@ export function SeekerProfileForm() {
             </div>
           </div>
         ) : (
-          <div className="mt-4">
-            <p className="text-sm text-zinc-500">No resume on file.</p>
+          <div className="rounded-2xl border border-dashed border-zinc-300 px-6 py-10 text-center dark:border-zinc-700">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
+              <ResumeIcon />
+            </span>
+            <p className="mt-3 text-sm font-medium text-zinc-800 dark:text-zinc-200">No resume on file</p>
+            <p className="mt-1 text-xs text-zinc-500">Upload a PDF or DOCX to attach it to applications.</p>
             <Button
               type="button"
-              variant="secondary"
+              variant="success"
               size="sm"
-              className="mt-3"
+              className="mt-4"
               disabled={uploading}
               onClick={() => fileRef.current?.click()}
             >
@@ -278,7 +312,7 @@ export function SeekerProfileForm() {
           className="sr-only"
           onChange={(e) => void handleResumeChange(e)}
         />
-      </section>
+      </DashboardCard>
     </div>
   );
 }

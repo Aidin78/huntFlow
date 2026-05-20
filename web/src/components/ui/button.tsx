@@ -88,12 +88,12 @@ const actionBase =
 
 const actionVariants: Record<ActionVariant, string> = {
   neutral:
-    "text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
+    "border border-transparent text-zinc-700 hover:border-zinc-200 hover:bg-white hover:text-zinc-900 hover:shadow-sm dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
   primary:
-    "bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 hover:shadow-md hover:-translate-y-px",
+    "border border-emerald-600/20 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:border-emerald-500 hover:bg-emerald-500 hover:shadow-md hover:-translate-y-px",
   danger:
-    "text-red-700 hover:bg-red-50 hover:ring-1 hover:ring-red-200/80 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:ring-red-900/40",
-  link: "text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950/40",
+    "border border-transparent text-red-700 hover:border-red-200 hover:bg-red-50 dark:text-red-400 dark:hover:border-red-900/50 dark:hover:bg-red-950/40",
+  link: "border border-transparent text-sky-700 hover:border-sky-200 hover:bg-sky-50 dark:text-sky-400 dark:hover:border-sky-900/40 dark:hover:bg-sky-950/40",
 };
 
 export function actionButtonClass(variant: ActionVariant = "neutral", className?: string): string {

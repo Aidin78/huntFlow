@@ -230,16 +230,16 @@ export const marketingFooter = {
     {
       title: "Support",
       links: [
-        { label: "Contact (sample)", href: "#" },
-        { label: "FAQ (sample)", href: "#" },
+        { label: "Contact", href: "/contact" },
+        { label: "FAQ", href: "/faq" },
         { label: "Status page (sample)", href: "#" },
       ],
     },
     {
       title: "Legal",
       links: [
-        { label: "Privacy (sample)", href: "#" },
-        { label: "Terms (sample)", href: "#" },
+        { label: "Privacy", href: "/privacy" },
+        { label: "Terms", href: "/terms" },
       ],
     },
   ],

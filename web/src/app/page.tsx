@@ -1,10 +1,9 @@
 import Link from "next/link";
 
-import { MarketingFooter } from "@/components/marketing/MarketingFooter";
 import { MarketingHero } from "@/components/marketing/MarketingHero";
+import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
 import { RolePathTabs } from "@/components/marketing/RolePathTabs";
 import { SectionHeader } from "@/components/marketing/SectionHeader";
-import { SiteHeader } from "@/components/SiteHeader";
 import {
   marketingFeatures,
   marketingFinalCta,
@@ -30,10 +29,8 @@ const featureGlow = [
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col" lang="en">
-      <SiteHeader />
-
-      <main className="flex flex-1 flex-col">
+    <MarketingPageLayout>
+      <div lang="en">
         <MarketingHero />
 
         <RolePathTabs />
@@ -226,9 +223,7 @@ export default function Home() {
             </p>
           </div>
         </section>
-
-        <MarketingFooter />
-      </main>
-    </div>
+      </div>
+    </MarketingPageLayout>
   );
 }

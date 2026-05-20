@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 
-import { SiteHeader } from "@/components/SiteHeader";
+import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
 import {
   experienceLabel,
   jobListingsQueryFromSearchParams,
@@ -179,22 +179,8 @@ export function JobsBoard({ data, loadError, query }: JobsBoardProps) {
   );
 
   return (
-    <div className="relative flex min-h-screen flex-col">
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(165deg,rgb(244_244_245)_0%,rgb(250_250_250)_40%,rgb(255_255_255)_100%)] dark:bg-[linear-gradient(165deg,rgb(9_9_11)_0%,rgb(24_24_27)_55%,rgb(9_9_11)_100%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10 opacity-[0.4] dark:opacity-[0.18]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M36 0 L36 72 M0 36 L72 36' stroke='%2371717a' stroke-opacity='0.07' fill='none'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      <SiteHeader />
-
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
+    <MarketingPageLayout>
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
         <header className="mb-10 max-w-2xl">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">
             Open roles
@@ -419,16 +405,7 @@ export function JobsBoard({ data, loadError, query }: JobsBoardProps) {
             ) : null}
           </div>
         </div>
-      </main>
-
-      <footer className="mt-auto border-t border-zinc-200/70 py-8 text-center dark:border-zinc-800/70">
-        <Link
-          href="/"
-          className="text-sm font-semibold text-zinc-600 underline-offset-4 hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          ← Back to home
-        </Link>
-      </footer>
-    </div>
+      </div>
+    </MarketingPageLayout>
   );
 }

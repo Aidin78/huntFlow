@@ -1,7 +1,10 @@
 import Link from "next/link";
 
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { DashboardStatCard } from "@/components/dashboard/dashboard-ui";
 import { SampleDataBanner } from "@/components/dashboard/SampleDataBanner";
+import { LinkButton } from "@/components/ui/button";
 import {
   employerOverview,
   employerSampleApplicants,
@@ -32,6 +35,8 @@ function statusClass(status: string) {
   }
 }
 
+const statTones = ["emerald", "sky", "violet", "amber"] as const;
+
 export default function EmployerOverviewPage() {
   return (
     <div className="p-4 sm:p-8 lg:p-10">
@@ -39,50 +44,50 @@ export default function EmployerOverviewPage() {
         badge="Employer"
         title={employerOverview.title}
         subtitle={employerOverview.subtitle}
+        actions={
+          <LinkButton href="/dashboard/employer/jobs" variant="success" size="md">
+            New posting
+          </LinkButton>
+        }
       />
       <SampleDataBanner />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {employerOverview.stats.map((stat) => (
-          <div
+        {employerOverview.stats.map((stat, i) => (
+          <DashboardStatCard
             key={stat.label}
-            className="rounded-3xl border border-zinc-200/80 bg-white/90 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{stat.label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{stat.value}</p>
-            <p className="mt-1 text-xs text-zinc-500">{stat.change}</p>
-          </div>
+            label={stat.label}
+            value={stat.value}
+            hint={stat.change}
+            tone={statTones[i % statTones.length]}
+          />
         ))}
       </div>
 
       <div className="mt-8 flex flex-wrap gap-3">
         {employerOverview.quickActions.map((action) => (
-          <Link
+          <LinkButton
             key={action.label}
             href={action.href}
-            className={
-              action.primary
-                ? "inline-flex rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900"
-                : "inline-flex rounded-full border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-            }
+            variant={action.primary ? "success" : "secondary"}
+            size="md"
           >
             {action.label}
-          </Link>
+          </LinkButton>
         ))}
       </div>
 
-      <div className="mt-10 grid gap-8 xl:grid-cols-2">
-        <section className="rounded-3xl border border-zinc-200/80 bg-white/90 p-6 dark:border-zinc-800/80 dark:bg-zinc-900/60">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Recent postings</h2>
+      <div className="mt-10 grid gap-6 xl:grid-cols-2">
+        <DashboardCard title="Recent postings" accent="sky">
+          <div className="mb-4 flex justify-end">
             <Link
               href="/dashboard/employer/jobs"
               className="text-xs font-semibold text-sky-700 hover:underline dark:text-sky-400"
             >
-              View all
+              View all →
             </Link>
           </div>
-          <ul className="mt-4 divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
+          <ul className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
             {employerSampleJobs.slice(0, 3).map((job) => (
               <li key={job.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0">
                 <div>
@@ -90,26 +95,25 @@ export default function EmployerOverviewPage() {
                   <p className="text-xs text-zinc-500">{job.location}</p>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusClass(job.status)}`}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusClass(job.status)}`}
                 >
                   {job.status}
                 </span>
               </li>
             ))}
           </ul>
-        </section>
+        </DashboardCard>
 
-        <section className="rounded-3xl border border-zinc-200/80 bg-white/90 p-6 dark:border-zinc-800/80 dark:bg-zinc-900/60">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Latest applications</h2>
+        <DashboardCard title="Latest applications" accent="emerald">
+          <div className="mb-4 flex justify-end">
             <Link
               href="/dashboard/employer/applications"
-              className="text-xs font-semibold text-sky-700 hover:underline dark:text-sky-400"
+              className="text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
             >
-              View all
+              View all →
             </Link>
           </div>
-          <ul className="mt-4 divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
+          <ul className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
             {employerSampleApplicants.map((row) => (
               <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0">
                 <div>
@@ -117,14 +121,14 @@ export default function EmployerOverviewPage() {
                   <p className="text-xs text-zinc-500">{row.role}</p>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${stageClass(row.stage)}`}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${stageClass(row.stage)}`}
                 >
                   {row.stage}
                 </span>
               </li>
             ))}
           </ul>
-        </section>
+        </DashboardCard>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { JobsBoard } from "@/components/jobs/JobsBoard";
-import { SiteHeader } from "@/components/SiteHeader";
+import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
 import {
   fetchJobListings,
   jobListingsQueryFromSearchParams,
@@ -47,12 +47,11 @@ export default function JobsPage(props: JobsPageProps) {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-          <SiteHeader />
-          <div className="flex flex-1 items-center justify-center px-4">
+        <MarketingPageLayout>
+          <div className="flex flex-1 items-center justify-center px-4 py-24">
             <p className="text-sm font-medium text-zinc-500">Loading jobs…</p>
           </div>
-        </div>
+        </MarketingPageLayout>
       }
     >
       <JobsPageContent {...props} />

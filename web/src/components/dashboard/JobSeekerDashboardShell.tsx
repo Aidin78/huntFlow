@@ -152,7 +152,7 @@ export function JobSeekerDashboardShell({ user, children }: JobSeekerDashboardSh
           })}
         </nav>
 
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="dashboard-canvas flex-1 overflow-auto">{children}</main>
       </div>
     </div>
   );

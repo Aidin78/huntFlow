@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { DashboardStatCard } from "@/components/dashboard/dashboard-ui";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 import { CompanyRequiredAlert } from "@/components/employer/CompanyRequiredAlert";
 import { JobListingForm } from "@/components/employer/JobListingForm";
 import { ActionButton, ActionLink, Button, LinkButton } from "@/components/ui/button";
@@ -36,6 +38,18 @@ function formatDate(iso: string | null): string {
   } catch {
     return iso;
   }
+}
+
+function JobsIcon() {
+  return (
+    <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.75V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"
+      />
+    </svg>
+  );
 }
 
 export function EmployerJobsManager() {
@@ -132,6 +146,9 @@ export function EmployerJobsManager() {
   }
 
   const companyComplete = isEmployerCompanyComplete(company);
+  const published = items.filter((j) => j.status === "PUBLISHED").length;
+  const drafts = items.filter((j) => j.status === "DRAFT").length;
+  const totalApplicants = items.reduce((s, j) => s + j.applicantCount, 0);
 
   function openCreate() {
     if (!companyComplete) return;
@@ -151,7 +168,18 @@ export function EmployerJobsManager() {
       <DashboardPageHeader
         badge="Hiring"
         title="Job postings"
-        subtitle="Create drafts, publish to the job board, and deactivate roles when hiring closes. Published postings cannot be deleted."
+        subtitle="Create drafts, publish to the job board, and deactivate roles when hiring closes."
+        actions={
+          <Button
+            type="button"
+            variant="success"
+            onClick={openCreate}
+            disabled={!companyComplete}
+            title={!companyComplete ? "Complete your company profile first" : undefined}
+          >
+            + New posting
+          </Button>
+        }
       />
 
       {error ? (
@@ -169,120 +197,110 @@ export function EmployerJobsManager() {
       {!companyComplete ? (
         <CompanyRequiredAlert company={company} returnTo="/dashboard/employer/jobs" />
       ) : company ? (
-        <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
-          Posting as <span className="font-semibold text-zinc-900 dark:text-zinc-100">{company.name}</span>
+        <p className="mb-6 rounded-xl border border-sky-200/60 bg-sky-50/50 px-4 py-3 text-sm text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-200">
+          Posting as <span className="font-semibold">{company.name}</span>
         </p>
       ) : null}
 
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          onClick={openCreate}
-          disabled={!companyComplete}
-          title={!companyComplete ? "Complete your company profile first" : undefined}
-        >
-          + New posting
-        </Button>
-        <LinkButton href="/jobs" variant="secondary">
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <DashboardStatCard label="Published" value={loading ? "…" : String(published)} tone="emerald" />
+        <DashboardStatCard label="Drafts" value={loading ? "…" : String(drafts)} tone="amber" />
+        <DashboardStatCard label="Total applicants" value={loading ? "…" : String(totalApplicants)} tone="violet" />
+      </div>
+
+      <div className="mb-6">
+        <LinkButton href="/jobs" variant="secondary" size="sm">
           View public job board
         </LinkButton>
       </div>
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading postings…</p>
-      ) : items.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-zinc-300 px-8 py-14 text-center dark:border-zinc-700">
-          <p className="font-medium text-zinc-800 dark:text-zinc-200">No postings yet</p>
-          <p className="mt-2 text-sm text-zinc-500">Create a draft, then publish when you are ready.</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="h-24 animate-pulse rounded-3xl bg-white/60 dark:bg-zinc-900/40" />
+          ))}
         </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          title="No postings yet"
+          description="Create a draft, then publish when you are ready to receive applications."
+          icon={<JobsIcon />}
+          action={
+            <Button type="button" variant="success" onClick={openCreate} disabled={!companyComplete}>
+              Create first posting
+            </Button>
+          }
+        />
       ) : (
-        <div className="overflow-x-auto rounded-3xl border border-zinc-200/80 bg-white/90 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-zinc-200/80 bg-zinc-50/80 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900/80">
-              <tr>
-                <th className="px-5 py-3">Role</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Location</th>
-                <th className="px-5 py-3">Applicants</th>
-                <th className="px-5 py-3">Published</th>
-                <th className="px-5 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200/80 dark:divide-zinc-800/80">
-              {items.map((job) => (
-                <tr key={job.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30">
-                  <td className="px-5 py-4 font-medium text-zinc-900 dark:text-zinc-100">{job.title}</td>
-                  <td className="px-5 py-4">
+        <ul className="space-y-3">
+          {items.map((job) => (
+            <li
+              key={job.id}
+              className="rounded-3xl border border-zinc-200/80 bg-white/95 p-5 shadow-sm transition-all hover:border-sky-300/40 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/70 dark:hover:border-sky-700/40"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{job.title}</h3>
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${lifecycleBadgeClass(job.status)}`}
                     >
                       {lifecycleLabel(job.status)}
                     </span>
-                  </td>
-                  <td className="px-5 py-4 text-zinc-600 dark:text-zinc-400">{locationLabel(job)}</td>
-                  <td className="px-5 py-4 tabular-nums">
-                    {job.applicantCount > 0 ? (
-                      <ActionLink
-                        href={`/dashboard/employer/applications?job=${encodeURIComponent(job.id)}`}
-                        actionVariant="link"
-                        className="tabular-nums"
-                      >
-                        {job.applicantCount}
-                      </ActionLink>
-                    ) : (
-                      job.applicantCount
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-zinc-500">{formatDate(job.publishedAt)}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      <ActionButton type="button" onClick={() => openEdit(job)}>
-                        Edit
-                      </ActionButton>
-                      {job.status === "DRAFT" ? (
-                        <>
-                          <ActionButton
-                            type="button"
-                            actionVariant="primary"
-                            onClick={() => void handlePublish(job)}
-                          >
-                            Publish
-                          </ActionButton>
-                          <ActionButton
-                            type="button"
-                            actionVariant="danger"
-                            onClick={() => void handleDelete(job)}
-                          >
-                            Delete
-                          </ActionButton>
-                        </>
-                      ) : null}
-                      {job.status === "PUBLISHED" ? (
-                        <ActionButton type="button" onClick={() => void handleDeactivate(job)}>
-                          Deactivate
-                        </ActionButton>
-                      ) : null}
-                      {job.status === "DEACTIVATED" ? (
-                        <ActionButton
-                          type="button"
-                          actionVariant="primary"
-                          onClick={() => void handlePublish(job)}
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{locationLabel(job)}</p>
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-zinc-500">
+                    <span>
+                      Applicants:{" "}
+                      {job.applicantCount > 0 ? (
+                        <ActionLink
+                          href={`/dashboard/employer/applications?job=${encodeURIComponent(job.id)}`}
+                          actionVariant="link"
+                          className="inline px-1 py-0"
                         >
-                          Republish
-                        </ActionButton>
-                      ) : null}
-                      {job.status === "PUBLISHED" ? (
-                        <ActionLink href={`/jobs/${job.id}`} actionVariant="link">
-                          View live
+                          {job.applicantCount}
                         </ActionLink>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      ) : (
+                        "0"
+                      )}
+                    </span>
+                    <span>Published {formatDate(job.publishedAt)}</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
+                  <ActionButton type="button" onClick={() => openEdit(job)}>
+                    Edit
+                  </ActionButton>
+                  {job.status === "DRAFT" ? (
+                    <>
+                      <ActionButton type="button" actionVariant="primary" onClick={() => void handlePublish(job)}>
+                        Publish
+                      </ActionButton>
+                      <ActionButton type="button" actionVariant="danger" onClick={() => void handleDelete(job)}>
+                        Delete
+                      </ActionButton>
+                    </>
+                  ) : null}
+                  {job.status === "PUBLISHED" ? (
+                    <>
+                      <ActionButton type="button" onClick={() => void handleDeactivate(job)}>
+                        Deactivate
+                      </ActionButton>
+                      <ActionLink href={`/jobs/${job.id}`} actionVariant="link">
+                        View live
+                      </ActionLink>
+                    </>
+                  ) : null}
+                  {job.status === "DEACTIVATED" ? (
+                    <ActionButton type="button" actionVariant="primary" onClick={() => void handlePublish(job)}>
+                      Republish
+                    </ActionButton>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {modal ? (

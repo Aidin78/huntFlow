@@ -35,12 +35,6 @@ export const employerNavItems: EmployerNavItem[] = [
     description: "Brand and careers page",
   },
   {
-    id: "team",
-    label: "Team",
-    href: "/dashboard/employer/team",
-    description: "Hiring managers and recruiters",
-  },
-  {
     id: "settings",
     label: "Settings",
     href: "/dashboard/employer/settings",
@@ -155,12 +149,6 @@ export const employerCompanySample = {
   about:
     "We build developer tools that help mid-size companies ship faster. Our careers page highlights hybrid roles and a transparent interview process.",
 };
-
-export const employerTeamSample = [
-  { name: "You", email: "owner@company.com", role: "Account owner" },
-  { name: "Jordan Lee", email: "jordan@company.com", role: "Hiring manager" },
-  { name: "Casey Wu", email: "casey@company.com", role: "Recruiter" },
-];
 
 export const employerSettingsSample = {
   notifications: [
