@@ -102,13 +102,17 @@ export function SeekerApplicationsList() {
                   <td className="px-5 py-4 text-zinc-500">{formatDate(row.appliedAt)}</td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      <ActionLink
+                        href={`/dashboard/seeker/applications/${row.id}`}
+                        actionVariant="link"
+                      >
+                        Open
+                      </ActionLink>
                       {row.jobListing ? (
                         <ActionLink href={`/jobs/${row.jobListing.id}`} actionVariant="link">
-                          View posting
+                          Posting
                         </ActionLink>
-                      ) : (
-                        <span className="px-2 text-xs text-zinc-400">—</span>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>

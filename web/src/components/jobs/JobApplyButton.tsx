@@ -8,6 +8,7 @@ import { Button, LinkButton, buttonClass } from "@/components/ui/button";
 import { fetchMe } from "@/lib/auth-api";
 import { getAccessToken } from "@/lib/auth-token";
 import { applyToJobListing, fetchJobApplyStatus } from "@/lib/job-listings-api";
+import { fetchSeekerProfile } from "@/lib/seeker-profile-api";
 import { roleToQueryParam } from "@/lib/user-role";
 
 type JobApplyButtonProps = {
@@ -15,6 +16,8 @@ type JobApplyButtonProps = {
   className?: string;
   size?: "default" | "large";
 };
+
+const COVER_LETTER_MAX = 4000;
 
 export function JobApplyButton({ listingId, className = "", size = "default" }: JobApplyButtonProps) {
   const router = useRouter();
@@ -24,6 +27,9 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
   const [error, setError] = useState<string | null>(null);
   const [authed, setAuthed] = useState(false);
   const [wrongRole, setWrongRole] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [hasResume, setHasResume] = useState<boolean | null>(null);
 
   const sizeClass =
     size === "large" ? "min-h-12 px-8 text-sm" : "min-h-10 px-5 text-sm";
@@ -67,6 +73,20 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
     void refreshStatus();
   }, [refreshStatus]);
 
+  async function openApplyModal() {
+    const token = getAccessToken();
+    if (!token) {
+      router.push(loginHref);
+      return;
+    }
+    setError(null);
+    const profile = await fetchSeekerProfile();
+    if ("profile" in profile) {
+      setHasResume(Boolean(profile.profile?.resume));
+    }
+    setModalOpen(true);
+  }
+
   async function handleApply() {
     const token = getAccessToken();
     if (!token) {
@@ -87,13 +107,18 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
         return;
       }
 
-      const result = await applyToJobListing(listingId, token);
+      const trimmed = coverLetter.trim();
+      const result = await applyToJobListing(listingId, token, {
+        coverLetter: trimmed || undefined,
+      });
       if ("error" in result && result.error) {
         setError(result.error.message ?? "Could not apply");
         return;
       }
       if ("application" in result && result.application) {
         setApplied(true);
+        setModalOpen(false);
+        setCoverLetter("");
       }
     } finally {
       setApplying(false);
@@ -157,8 +182,9 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
   }
 
   return (
+  <>
     <div className={`flex flex-col gap-2 ${className}`}>
-      {error ? (
+      {error && !modalOpen ? (
         <p className="text-sm text-red-600 dark:text-red-400" role="alert">
           {error}
         </p>
@@ -167,12 +193,66 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
         type="button"
         variant="emerald"
         size={size === "large" ? "lg" : "md"}
-        onClick={() => void handleApply()}
-        disabled={applying}
+        onClick={() => void openApplyModal()}
         className="w-full sm:w-auto"
       >
-        {applying ? "Applying…" : "Apply with huntFlow"}
+        Apply with huntFlow
       </Button>
     </div>
+
+    {modalOpen ? (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="apply-modal-title"
+      >
+        <div className="w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+          <h2 id="apply-modal-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            Apply to this role
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Optional cover letter for the employer. Your profile details are shared automatically.
+          </p>
+          {hasResume === false ? (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+              No resume on file.{" "}
+              <Link href="/dashboard/seeker/settings" className="font-semibold underline">
+                Upload one in settings
+              </Link>{" "}
+              to attach it to this application.
+            </p>
+          ) : null}
+          <label htmlFor="cover-letter" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Cover letter (optional)
+          </label>
+          <textarea
+            id="cover-letter"
+            value={coverLetter}
+            onChange={(e) => setCoverLetter(e.target.value.slice(0, COVER_LETTER_MAX))}
+            rows={6}
+            placeholder="Why you are a good fit…"
+            className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+          />
+          <p className="mt-1 text-right text-xs text-zinc-400">
+            {coverLetter.length}/{COVER_LETTER_MAX}
+          </p>
+          {error ? (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} disabled={applying}>
+              Cancel
+            </Button>
+            <Button type="button" variant="emerald" onClick={() => void handleApply()} disabled={applying}>
+              {applying ? "Submitting…" : "Submit application"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+  </>
   );
 }

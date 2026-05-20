@@ -1,5 +1,6 @@
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
+import type { UserFileMeta } from "@/lib/seeker-profile-api";
 import {
   applicationStatusClass,
   applicationStatusLabel,
@@ -20,11 +21,54 @@ export type EmployerApplication = {
   title: string;
   status: JobApplicationStatus;
   appliedAt: string | null;
+  coverLetter?: string | null;
   location: string | null;
   salaryText: string | null;
   createdAt: string;
   user: { id: string; name: string | null; email: string };
   jobListing: { id: string; title: string } | null;
+};
+
+export type SeekerProfilePublic = {
+  headline: string | null;
+  bio: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedinUrl: string | null;
+  portfolioUrl: string | null;
+  githubUrl: string | null;
+} | null;
+
+export type EmployerApplicationDetailResponse = {
+  application: {
+    id: string;
+    title: string;
+    status: JobApplicationStatus;
+    appliedAt: string | null;
+    coverLetter: string | null;
+    location: string | null;
+    salaryText: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  applicant: {
+    id: string;
+    name: string | null;
+    email: string;
+    profile: SeekerProfilePublic;
+  };
+  jobListing: {
+    id: string;
+    title: string;
+    city: string | null;
+    workArrangement: string;
+    experienceLevel: string;
+  } | null;
+  resume: UserFileMeta | null;
+  messaging: {
+    messageCount: number;
+    lastMessage: { body: string; createdAt: string; senderName: string } | null;
+  };
 };
 
 export type EmployerApplicationsQuery = {
@@ -64,6 +108,18 @@ export async function fetchEmployerApplications(
     cache: "no-store",
   });
   const data = (await res.json()) as EmployerApplicationsResponse & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function fetchEmployerApplicationDetail(
+  id: string,
+): Promise<EmployerApplicationDetailResponse | ApiErrorBody> {
+  const res = await fetch(`${getPublicApiBaseUrl()}/api/employer/applications/${encodeURIComponent(id)}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  const data = (await res.json()) as EmployerApplicationDetailResponse & ApiErrorBody;
   if (!res.ok) return data;
   return data;
 }

@@ -21,9 +21,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  jobApplications JobApplication[]
-  tags            Tag[]
-  employerProfile EmployerProfile?
+  jobApplications      JobApplication[]
+  tags                 Tag[]
+  employerProfile      EmployerProfile?
+  jobSeekerProfile     JobSeekerProfile?
+  files                UserFile[]
+  applicationMessages  ApplicationMessage[]
 }
 
 model EmployerProfile {
@@ -33,6 +36,48 @@ model EmployerProfile {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
   @@index([companyId])
+}
+
+model JobSeekerProfile {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  headline     String?
+  bio          String?
+  phone        String?
+  location     String?
+  linkedinUrl  String?
+  portfolioUrl String?
+  githubUrl    String?
+
+  currentResumeFileId String?   @unique
+  currentResumeFile   UserFile? @relation("CurrentResume", fields: [currentResumeFileId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserFileKind {
+  RESUME
+}
+
+model UserFile {
+  id         String       @id @default(uuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       UserFileKind @default(RESUME)
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String
+
+  createdAt DateTime @default(now())
+
+  currentResumeForProfile JobSeekerProfile? @relation("CurrentResume")
+  jobApplications         JobApplication[]  @relation("ApplicationResume")
+
+  @@index([userId])
+  @@index([kind])
 }
 
 enum WorkArrangement {
@@ -137,6 +182,7 @@ model JobApplication {
   status      JobApplicationStatus @default(APPLIED)
   appliedAt   DateTime?
   notes       String?
+  coverLetter String?
   location    String?
   salaryText  String?
 
@@ -149,6 +195,9 @@ model JobApplication {
   jobListingId String?
   jobListing   JobListing?         @relation(fields: [jobListingId], references: [id], onDelete: SetNull)
 
+  resumeFileId String?
+  resumeFile   UserFile?           @relation("ApplicationResume", fields: [resumeFileId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -159,14 +208,38 @@ model JobApplication {
   attachments  Attachment[]
   statusEvents JobApplicationStatusEvent[]
   tags         JobApplicationTag[]
+  thread       ApplicationThread?
 
   @@index([userId])
   @@index([companyId])
   @@index([status])
   @@index([appliedAt])
   @@index([jobListingId])
+  @@index([resumeFileId])
   @@unique([userId, companyId, title])
   @@unique([userId, jobListingId])
+}
+
+model ApplicationThread {
+  id               String         @id @default(uuid())
+  jobApplicationId String         @unique
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  messages ApplicationMessage[]
+}
+
+model ApplicationMessage {
+  id           String            @id @default(uuid())
+  threadId     String
+  thread       ApplicationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderUserId String
+  sender       User              @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+  body         String
+  createdAt    DateTime          @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([senderUserId])
 }
 
 model JobApplicationContact {

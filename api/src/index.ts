@@ -8,7 +8,9 @@ import { authRouter } from './routes/auth';
 import { employerApplicationsRouter } from './routes/employerApplications';
 import { employerJobListingsRouter } from './routes/employerJobListings';
 import { jobListingsRouter } from './routes/jobListings';
+import { filesRouter } from './routes/files';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
+import { seekerProfileRouter } from './routes/seekerProfile';
 
 const repoRoot = path.resolve(__dirname, '../..');
 dotenv.config({ path: path.join(repoRoot, '.env') });
@@ -31,6 +33,8 @@ app.use('/api', jobListingsRouter);
 app.use('/api', employerJobListingsRouter);
 app.use('/api', employerApplicationsRouter);
 app.use('/api', seekerApplicationsRouter);
+app.use('/api', seekerProfileRouter);
+app.use('/api', filesRouter);
 
 app.get('/health', async (_req, res) => {
   try {

@@ -3,8 +3,14 @@ import { prisma, UserRole } from '@huntflow/db';
 import type { Prisma } from '@huntflow/db';
 import { z } from 'zod';
 
+import { ensureApplicationThread } from '../lib/applicationThread';
+import { sanitizePlainText } from '../lib/sanitize';
 import { sendError } from '../lib/errors';
 import { requireAuth } from '../middleware/requireAuth';
+
+const applyBodySchema = z.object({
+  coverLetter: z.string().max(4000).optional(),
+});
 
 const listingIdSchema = z.string().uuid();
 
@@ -259,6 +265,17 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
       return;
     }
 
+    const bodyParsed = applyBodySchema.safeParse(req.body ?? {});
+    const coverLetterRaw = bodyParsed.success ? bodyParsed.data.coverLetter : undefined;
+    const coverLetter = coverLetterRaw
+      ? sanitizePlainText(coverLetterRaw, 4000) || undefined
+      : undefined;
+
+    const seekerProfile = await prisma.jobSeekerProfile.findUnique({
+      where: { userId },
+      select: { currentResumeFileId: true },
+    });
+
     const locationParts = [listing.city, listing.workArrangement].filter(Boolean);
     const location = locationParts.length ? locationParts.join(' · ') : null;
 
@@ -268,11 +285,13 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
           title: listing.title,
           status: 'APPLIED',
           appliedAt: new Date(),
+          coverLetter: coverLetter ?? null,
           location,
           salaryText: listing.salaryText,
           userId,
           companyId: listing.companyId,
           jobListingId: listing.id,
+          resumeFileId: seekerProfile?.currentResumeFileId ?? null,
         },
         select: { id: true, status: true, appliedAt: true, title: true },
       });
@@ -298,6 +317,8 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
 
       return created;
     });
+
+    await ensureApplicationThread(application.id);
 
     res.status(201).json({
       alreadyApplied: false,

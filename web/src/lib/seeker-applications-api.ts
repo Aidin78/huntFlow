@@ -1,5 +1,8 @@
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
+import type { EmployerApplicationDetailResponse } from "@/lib/employer-applications-api";
+
+export type SeekerApplicationDetailResponse = EmployerApplicationDetailResponse;
 
 export type JobApplicationStatus =
   | "DRAFT"
@@ -35,6 +38,18 @@ function authHeaders(): HeadersInit {
   const token = getAccessToken();
   if (!token) throw new Error("Not signed in");
   return { Authorization: `Bearer ${token}` };
+}
+
+export async function fetchSeekerApplicationDetail(
+  id: string,
+): Promise<SeekerApplicationDetailResponse | ApiErrorBody> {
+  const res = await fetch(`${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(id)}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  const data = (await res.json()) as SeekerApplicationDetailResponse & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
 }
 
 export async function fetchSeekerApplications(): Promise<

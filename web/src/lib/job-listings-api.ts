@@ -176,12 +176,19 @@ export async function fetchJobApplyStatus(
 export async function applyToJobListing(
   listingId: string,
   token: string,
+  options?: { coverLetter?: string },
 ): Promise<JobApplyResult | ApiErrorBody> {
   const res = await fetch(
     `${getPublicApiBaseUrl()}/api/job-listings/${encodeURIComponent(listingId)}/apply`,
     {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...(options?.coverLetter ? { coverLetter: options.coverLetter } : {}),
+      }),
     },
   );
   const data = (await res.json()) as JobApplyResult & ApiErrorBody;

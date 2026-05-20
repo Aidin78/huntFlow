@@ -224,6 +224,12 @@ export function EmployerApplicationsManager() {
                   >
                     {applicationStatusLabel(row.status)}
                   </span>
+                  <ActionLink
+                    href={`/dashboard/employer/applications/${row.id}`}
+                    actionVariant="link"
+                  >
+                    View application
+                  </ActionLink>
                   {row.jobListing ? (
                     <ActionLink href={`/jobs/${row.jobListing.id}`} actionVariant="link">
                       View posting

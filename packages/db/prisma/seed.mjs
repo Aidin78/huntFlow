@@ -135,6 +135,102 @@ const demoUsers = [
   { email: 'james.wright@demo.huntflow.app', name: 'James Wright', role: 'JOB_SEEKER' },
 ];
 
+const seekerProfiles = {
+  'alex.morgan@demo.huntflow.app': {
+    headline: 'Backend engineer · Go & PostgreSQL',
+    bio: 'Five years building APIs and data pipelines. Interested in platform teams and strong engineering culture.',
+    phone: '+49 170 1234567',
+    location: 'Berlin',
+    linkedinUrl: 'https://linkedin.com/in/alex-morgan-demo',
+    portfolioUrl: 'https://example.com/alex-morgan',
+    githubUrl: 'https://github.com/alexmorgan-demo',
+  },
+  'samira.patel@demo.huntflow.app': {
+    headline: 'Full-stack developer · React & Node',
+    bio: 'Product-minded engineer who enjoys shipping end-to-end features and mentoring juniors.',
+    location: 'London',
+    linkedinUrl: 'https://linkedin.com/in/samira-patel-demo',
+    githubUrl: 'https://github.com/samirapatel-demo',
+  },
+  'lucas.berg@demo.huntflow.app': {
+    headline: 'Platform engineer · Kubernetes',
+    bio: 'DevOps-focused developer with experience in regulated industries and on-call rotation.',
+    location: 'Amsterdam',
+    linkedinUrl: 'https://linkedin.com/in/lucas-berg-demo',
+  },
+  'mia.chen@demo.huntflow.app': {
+    headline: 'Frontend engineer · React & accessibility',
+    bio: 'I care about inclusive UI, design systems, and measurable performance improvements.',
+    location: 'Manchester',
+    portfolioUrl: 'https://example.com/mia-chen',
+    githubUrl: 'https://github.com/miachen-demo',
+  },
+  'noah.okonkwo@demo.huntflow.app': {
+    headline: 'Data analyst → analytics engineer',
+    bio: 'SQL, dbt, and experimentation. Looking for teams that treat data as a product.',
+    location: 'Remote (EU)',
+    linkedinUrl: 'https://linkedin.com/in/noah-okonkwo-demo',
+  },
+  'elena.ruiz@demo.huntflow.app': {
+    headline: 'Engineering manager · B2B SaaS',
+    bio: 'Former IC lead now focused on hiring, delivery, and healthy team habits.',
+    location: 'London',
+    linkedinUrl: 'https://linkedin.com/in/elena-ruiz-demo',
+  },
+  'james.wright@demo.huntflow.app': {
+    headline: 'Security engineer · AppSec',
+    bio: 'Threat modelling, secure SDLC, and developer-friendly security tooling.',
+    location: 'Remote (UK)',
+    githubUrl: 'https://github.com/jameswright-demo',
+  },
+};
+
+const coverLettersByKey = {
+  'alex.morgan@demo.huntflow.app::[huntFlow demo] Aurora Analytics::Senior Backend Engineer':
+    'Hi Aurora team,\n\nI have spent the last several years on Go services and Postgres at scale. Your analytics platform work aligns well with what I enjoy building.\n\nBest,\nAlex',
+  'samira.patel@demo.huntflow.app::[huntFlow demo] Aurora Analytics::Senior Backend Engineer':
+    'Hello,\n\nI am excited about the Senior Backend role. I would welcome a conversation about your API roadmap and team structure.\n\nSamira',
+  'james.wright@demo.huntflow.app::[huntFlow demo] Aurora Analytics::Data Analyst':
+    'Dear hiring team,\n\nMy background blends security reviews with data tooling — happy to share how I approach sensitive datasets responsibly.\n\nJames',
+};
+
+const demoMessageThreads = [
+  {
+    seekerEmail: 'samira.patel@demo.huntflow.app',
+    listingTitle: 'Senior Backend Engineer',
+    companyName: demoCompanyNames[0],
+    messages: [
+      {
+        from: 'employer',
+        body: 'Thanks for applying, Samira. Are you available for a 30-minute intro call next week?',
+        hoursAgo: 48,
+      },
+      {
+        from: 'seeker',
+        body: 'Hi Jordan — yes, I am free Tuesday or Wednesday afternoon CET. Looking forward to it.',
+        hoursAgo: 40,
+      },
+    ],
+  },
+  {
+    seekerEmail: 'alex.morgan@demo.huntflow.app',
+    listingTitle: 'Senior Backend Engineer',
+    companyName: demoCompanyNames[0],
+    messages: [
+      {
+        from: 'seeker',
+        body: 'Quick question: is the team mostly Berlin-based or distributed across EU time zones?',
+        hoursAgo: 20,
+      },
+      {
+        from: 'employer',
+        body: 'Mostly hybrid in Berlin with a few remote colleagues in CET±1. Happy to discuss on a call.',
+        hoursAgo: 12,
+      },
+    ],
+  },
+];
+
 /** seeker email → listing title @ company */
 const sampleApplications = [
   {
@@ -285,6 +381,16 @@ function daysAgoDate(days) {
   return d;
 }
 
+function hoursAgoDate(hours) {
+  const d = new Date();
+  d.setTime(d.getTime() - hours * 60 * 60 * 1000);
+  return d;
+}
+
+function applicationKey(seekerEmail, companyName, listingTitle) {
+  return `${seekerEmail}::${companyName}::${listingTitle}`;
+}
+
 function locationForListing(listing) {
   const parts = [listing.city, listing.workArrangement].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
@@ -364,6 +470,21 @@ async function upsertUsers(companies) {
   return usersByEmail;
 }
 
+async function seedSeekerProfiles(usersByEmail) {
+  let upserted = 0;
+  for (const [email, profile] of Object.entries(seekerProfiles)) {
+    const user = usersByEmail[email];
+    if (!user) continue;
+    await prisma.jobSeekerProfile.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, ...profile },
+      update: profile,
+    });
+    upserted += 1;
+  }
+  return upserted;
+}
+
 async function listingIndex(companies) {
   const index = new Map();
   for (const name of demoCompanyNames) {
@@ -401,17 +522,21 @@ async function seedApplications(usersByEmail, companies, listingIdx) {
     }
 
     const appliedAt = daysAgoDate(row.daysAgo);
+    const key = applicationKey(row.seekerEmail, row.companyName, row.listingTitle);
+    const coverLetter = coverLettersByKey[key] ?? null;
 
     await prisma.jobApplication.create({
       data: {
         title: listing.title,
         status: row.status,
         appliedAt,
+        coverLetter,
         location: locationForListing(listing),
         salaryText: listing.salaryText,
         userId: user.id,
         companyId: listing.companyId,
         jobListingId: listing.id,
+        thread: { create: {} },
         statusEvents: {
           create: {
             from: null,
@@ -428,16 +553,92 @@ async function seedApplications(usersByEmail, companies, listingIdx) {
   return { created, skipped };
 }
 
+async function backfillApplicationThreads() {
+  const missing = await prisma.jobApplication.findMany({
+    where: { thread: null },
+    select: { id: true },
+  });
+  for (const app of missing) {
+    await prisma.applicationThread.create({ data: { jobApplicationId: app.id } });
+  }
+  return missing.length;
+}
+
+async function seedDemoMessages(usersByEmail, listingIdx) {
+  const employer = usersByEmail['employer@demo.huntflow.app'];
+  if (!employer) return 0;
+
+  let created = 0;
+  for (const row of demoMessageThreads) {
+    const seeker = usersByEmail[row.seekerEmail];
+    const listing = listingIdx.get(`${row.companyName}::${row.listingTitle}`);
+    if (!seeker || !listing) continue;
+
+    const application = await prisma.jobApplication.findFirst({
+      where: { userId: seeker.id, jobListingId: listing.id },
+      select: { id: true, thread: { select: { id: true } } },
+    });
+    if (!application?.thread) continue;
+
+    const existingCount = await prisma.applicationMessage.count({
+      where: { threadId: application.thread.id },
+    });
+    if (existingCount > 0) continue;
+
+    for (const msg of row.messages) {
+      const senderUserId = msg.from === 'employer' ? employer.id : seeker.id;
+      await prisma.applicationMessage.create({
+        data: {
+          threadId: application.thread.id,
+          senderUserId,
+          body: msg.body,
+          createdAt: hoursAgoDate(msg.hoursAgo),
+        },
+      });
+      created += 1;
+    }
+  }
+  return created;
+}
+
+async function backfillCoverLetters() {
+  let updated = 0;
+  for (const [key, coverLetter] of Object.entries(coverLettersByKey)) {
+    const [seekerEmail, companyName, listingTitle] = key.split('::');
+    const user = await prisma.user.findUnique({ where: { email: seekerEmail } });
+    if (!user) continue;
+    const listing = await prisma.jobListing.findFirst({
+      where: { title: listingTitle, company: { name: companyName } },
+      select: { id: true },
+    });
+    if (!listing) continue;
+    const app = await prisma.jobApplication.findFirst({
+      where: { userId: user.id, jobListingId: listing.id },
+    });
+    if (!app || app.coverLetter) continue;
+    await prisma.jobApplication.update({
+      where: { id: app.id },
+      data: { coverLetter },
+    });
+    updated += 1;
+  }
+  return updated;
+}
+
 async function main() {
   const companies = await upsertCompanies();
   const listingsCreated = await upsertListings(companies);
   const usersByEmail = await upsertUsers(companies);
+  const profilesUpserted = await seedSeekerProfiles(usersByEmail);
   const listingIdx = await listingIndex(companies);
   const { created: applicationsCreated, skipped: applicationsSkipped } = await seedApplications(
     usersByEmail,
     companies,
     listingIdx,
   );
+  const threadsBackfilled = await backfillApplicationThreads();
+  const coverLettersUpdated = await backfillCoverLetters();
+  const messagesCreated = await seedDemoMessages(usersByEmail, listingIdx);
 
   // eslint-disable-next-line no-console
   console.log('huntFlow demo seed complete.');
@@ -449,6 +650,14 @@ async function main() {
   console.log(`  Demo users: ${demoUsers.length} (password for all: Demo1234!)`);
   // eslint-disable-next-line no-console
   console.log(`  New applications: ${applicationsCreated} (${applicationsSkipped} already existed / skipped)`);
+  // eslint-disable-next-line no-console
+  console.log(`  Seeker profiles: ${profilesUpserted}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Threads backfilled: ${threadsBackfilled}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Cover letters updated: ${coverLettersUpdated}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Demo messages created: ${messagesCreated}`);
   // eslint-disable-next-line no-console
   console.log('');
   // eslint-disable-next-line no-console
