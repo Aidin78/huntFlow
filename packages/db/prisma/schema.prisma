@@ -27,6 +27,21 @@ model User {
   jobSeekerProfile     JobSeekerProfile?
   files                UserFile[]
   applicationMessages  ApplicationMessage[]
+  notifications              Notification[] @relation("NotificationRecipient")
+  notificationsSent          Notification[] @relation("NotificationActor")
+  notificationPreferences    UserNotificationPreferences?
+}
+
+model UserNotificationPreferences {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notifyNewApplication    Boolean @default(true)
+  notifyNewMessage        Boolean @default(true)
+  notifyInterviewReminder Boolean @default(true)
+  notifyWeeklySummary     Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
 }
 
 model EmployerProfile {
@@ -209,6 +224,7 @@ model JobApplication {
   statusEvents JobApplicationStatusEvent[]
   tags         JobApplicationTag[]
   thread       ApplicationThread?
+  notifications Notification[]
 
   @@index([userId])
   @@index([companyId])
@@ -237,9 +253,42 @@ model ApplicationMessage {
   sender       User              @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
   body         String
   createdAt    DateTime          @default(now())
+  notifications Notification[]
 
   @@index([threadId, createdAt])
   @@index([senderUserId])
+}
+
+enum NotificationType {
+  MESSAGE
+  NEW_APPLICATION
+  STATUS_EVENT
+}
+
+model Notification {
+  id               String           @id @default(uuid())
+  type             NotificationType
+  title            String
+  body             String?
+  createdAt        DateTime         @default(now())
+  readAt           DateTime?
+
+  recipientUserId  String
+  recipient        User             @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  actorUserId      String?
+  actor            User?            @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  jobApplicationId String?
+  jobApplication   JobApplication?  @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+
+  messageId        String?
+  message          ApplicationMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId, createdAt])
+  @@index([recipientUserId, readAt])
+  @@index([jobApplicationId])
+  @@index([messageId])
 }
 
 model JobApplicationContact {

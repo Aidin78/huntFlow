@@ -1,6 +1,7 @@
 import { prisma } from '@huntflow/db';
 
 import { ensureApplicationThread } from './applicationThread';
+import { notifyApplicationMessage } from './notifications';
 import { sanitizePlainText } from './sanitize';
 
 const DEFAULT_LIMIT = 30;
@@ -66,6 +67,27 @@ export async function postApplicationMessage(
       sender: { select: { id: true, name: true, email: true, role: true } },
     },
   });
+
+  const application = await prisma.jobApplication.findUnique({
+    where: { id: jobApplicationId },
+    select: { userId: true, companyId: true },
+  });
+
+  if (application) {
+    await notifyApplicationMessage({
+      jobApplicationId,
+      messageId: message.id,
+      senderUserId,
+      senderName: message.sender.name,
+      senderEmail: message.sender.email,
+      body: message.body,
+      seekerUserId: application.userId,
+      companyId: application.companyId,
+    }).catch((e) => {
+      // eslint-disable-next-line no-console
+      console.error('Failed to create message notification', e);
+    });
+  }
 
   return {
     item: {

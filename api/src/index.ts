@@ -7,8 +7,11 @@ import { sendError } from './lib/errors';
 import { authRouter } from './routes/auth';
 import { employerApplicationsRouter } from './routes/employerApplications';
 import { employerJobListingsRouter } from './routes/employerJobListings';
+import { employerOverviewRouter } from './routes/employerOverview';
+import { employerSettingsRouter } from './routes/employerSettings';
 import { jobListingsRouter } from './routes/jobListings';
 import { filesRouter } from './routes/files';
+import { notificationsRouter } from './routes/notifications';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
 import { seekerProfileRouter } from './routes/seekerProfile';
 
@@ -31,10 +34,13 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api', jobListingsRouter);
 app.use('/api', employerJobListingsRouter);
+app.use('/api', employerOverviewRouter);
+app.use('/api', employerSettingsRouter);
 app.use('/api', employerApplicationsRouter);
 app.use('/api', seekerApplicationsRouter);
 app.use('/api', seekerProfileRouter);
 app.use('/api', filesRouter);
+app.use('/api', notificationsRouter);
 
 app.get('/health', async (_req, res) => {
   try {

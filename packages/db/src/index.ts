@@ -1,7 +1,7 @@
 import { PrismaClient, UserRole, WorkArrangement, ExperienceLevel } from '@prisma/client';
 
 export { UserRole, WorkArrangement, ExperienceLevel };
-export type { Prisma } from '@prisma/client';
+export type { Prisma, NotificationType } from '@prisma/client';
 
 declare global {
   // eslint-disable-next-line no-var

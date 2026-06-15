@@ -4,6 +4,7 @@ import type { Prisma } from '@huntflow/db';
 import { z } from 'zod';
 
 import { ensureApplicationThread } from '../lib/applicationThread';
+import { notifyEmployersOfNewApplication } from '../lib/notifications';
 import { sanitizePlainText } from '../lib/sanitize';
 import { sendError } from '../lib/errors';
 import { requireAuth } from '../middleware/requireAuth';
@@ -319,6 +320,23 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
     });
 
     await ensureApplicationThread(application.id);
+
+    const applicant = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    await notifyEmployersOfNewApplication({
+      companyId: listing.companyId,
+      applicationId: application.id,
+      applicationTitle: application.title,
+      applicantName: applicant?.name ?? null,
+      applicantEmail: applicant?.email ?? 'applicant',
+      actorUserId: userId,
+    }).catch((e) => {
+      // eslint-disable-next-line no-console
+      console.error('Failed to create application notification', e);
+    });
 
     res.status(201).json({
       alreadyApplied: false,

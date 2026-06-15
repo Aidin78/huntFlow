@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
@@ -53,6 +53,7 @@ function ResumeIcon() {
 
 export function EmployerApplicationDetail() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = typeof params.id === "string" ? params.id : "";
 
   const [data, setData] = useState<EmployerApplicationDetailResponse | null>(null);
@@ -60,6 +61,12 @@ export function EmployerApplicationDetail() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("applicant");
   const [resumeBlobUrl, setResumeBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "messages") {
+      setTab("messages");
+    }
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     if (!id) return;

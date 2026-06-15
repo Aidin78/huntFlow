@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { seekerNavItems } from "@/content/seeker-dashboard-nav";
 import type { AuthUser } from "@/lib/auth-api";
 import { clearAccessToken } from "@/lib/auth-token";
@@ -77,12 +78,17 @@ export function JobSeekerDashboardShell({ user, children }: JobSeekerDashboardSh
     <div className="flex min-h-screen bg-zinc-100/80 dark:bg-zinc-950">
       <aside className="hidden w-64 shrink-0 border-r border-zinc-200/80 bg-white/90 backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-950/90 lg:flex lg:flex-col">
         <div className="border-b border-zinc-200/80 px-5 py-5 dark:border-zinc-800/80">
-          <Link href="/" className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            huntFlow
-          </Link>
-          <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
-            Job seeker
-          </p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <Link href="/" className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+                huntFlow
+              </Link>
+              <p className="mt-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
+                Job seeker
+              </p>
+            </div>
+            <NotificationBell />
+          </div>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4" aria-label="Job seeker dashboard">
@@ -125,9 +131,12 @@ export function JobSeekerDashboardShell({ user, children }: JobSeekerDashboardSh
           <Link href="/dashboard/seeker" className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             huntFlow · Job seeker
           </Link>
-          <Button variant="ghost" size="xs" onClick={signOut}>
-            Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button variant="ghost" size="xs" onClick={signOut}>
+              Sign out
+            </Button>
+          </div>
         </header>
 
         <nav

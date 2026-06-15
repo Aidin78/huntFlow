@@ -448,6 +448,7 @@ async function upsertUsers(companies) {
         name: row.name,
         role: row.role,
         passwordHash: DEMO_PASSWORD_HASH,
+        notificationPreferences: { create: {} },
       },
       update: {
         name: row.name,
@@ -466,6 +467,12 @@ async function upsertUsers(companies) {
         });
       }
     }
+
+    await prisma.userNotificationPreferences.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id },
+      update: {},
+    });
   }
   return usersByEmail;
 }
@@ -625,6 +632,61 @@ async function backfillCoverLetters() {
   return updated;
 }
 
+async function seedDemoNotifications(usersByEmail, listingIdx) {
+  const employer = usersByEmail['employer@demo.huntflow.app'];
+  const seeker = usersByEmail['alex.morgan@demo.huntflow.app'];
+  if (!employer) return 0;
+
+  let created = 0;
+
+  const listing = listingIdx.get(`${demoCompanyNames[0]}::Senior Backend Engineer`);
+  if (listing && seeker) {
+    const application = await prisma.jobApplication.findFirst({
+      where: { userId: seeker.id, jobListingId: listing.id },
+      select: { id: true },
+    });
+    if (application) {
+      const existing = await prisma.notification.count({
+        where: { recipientUserId: employer.id, jobApplicationId: application.id, type: 'NEW_APPLICATION' },
+      });
+      if (existing === 0) {
+        await prisma.notification.create({
+          data: {
+            type: 'NEW_APPLICATION',
+            title: 'New application: Senior Backend Engineer',
+            body: `${seeker.name ?? seeker.email} applied to this role.`,
+            recipientUserId: employer.id,
+            actorUserId: seeker.id,
+            jobApplicationId: application.id,
+          },
+        });
+        created += 1;
+      }
+
+      if (seeker) {
+        const existingMsg = await prisma.notification.count({
+          where: { recipientUserId: seeker.id, jobApplicationId: application.id, type: 'MESSAGE' },
+        });
+        if (existingMsg === 0) {
+          await prisma.notification.create({
+            data: {
+              type: 'MESSAGE',
+              title: `New message from ${employer.name ?? employer.email}`,
+              body: 'Thanks for applying — we would like to schedule a short intro call.',
+              recipientUserId: seeker.id,
+              actorUserId: employer.id,
+              jobApplicationId: application.id,
+            },
+          });
+          created += 1;
+        }
+      }
+    }
+  }
+
+  return created;
+}
+
 async function main() {
   const companies = await upsertCompanies();
   const listingsCreated = await upsertListings(companies);
@@ -639,6 +701,7 @@ async function main() {
   const threadsBackfilled = await backfillApplicationThreads();
   const coverLettersUpdated = await backfillCoverLetters();
   const messagesCreated = await seedDemoMessages(usersByEmail, listingIdx);
+  const notificationsCreated = await seedDemoNotifications(usersByEmail, listingIdx);
 
   // eslint-disable-next-line no-console
   console.log('huntFlow demo seed complete.');
@@ -658,6 +721,8 @@ async function main() {
   console.log(`  Cover letters updated: ${coverLettersUpdated}`);
   // eslint-disable-next-line no-console
   console.log(`  Demo messages created: ${messagesCreated}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Demo notifications created: ${notificationsCreated}`);
   // eslint-disable-next-line no-console
   console.log('');
   // eslint-disable-next-line no-console

@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
@@ -30,12 +30,19 @@ function formatDate(iso: string | null): string {
 
 export function SeekerApplicationDetail() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = typeof params.id === "string" ? params.id : "";
 
   const [data, setData] = useState<SeekerApplicationDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("application");
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "messages") {
+      setTab("messages");
+    }
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     if (!id) return;

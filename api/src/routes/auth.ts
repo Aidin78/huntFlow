@@ -39,6 +39,7 @@ authRouter.post('/register', async (req, res) => {
         passwordHash,
         name: name?.length ? name : undefined,
         role,
+        notificationPreferences: { create: {} },
       },
       select: { id: true, email: true, name: true, role: true, createdAt: true },
     });
