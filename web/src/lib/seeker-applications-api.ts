@@ -1,8 +1,13 @@
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
-import type { EmployerApplicationDetailResponse } from "@/lib/employer-applications-api";
+import type {
+  EmployerApplicationDetailResponse,
+  UpdateApplicationStatusResponse,
+} from "@/lib/employer-applications-api";
 
 export type SeekerApplicationDetailResponse = EmployerApplicationDetailResponse;
+
+export type { StatusHistoryEvent } from "@/lib/employer-applications-api";
 
 export type JobApplicationStatus =
   | "DRAFT"
@@ -60,6 +65,22 @@ export async function fetchSeekerApplications(): Promise<
     cache: "no-store",
   });
   const data = (await res.json()) as SeekerApplicationsResponse & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function archiveSeekerApplication(
+  id: string,
+): Promise<UpdateApplicationStatusResponse | ApiErrorBody> {
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(id)}/status`,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "ARCHIVED" }),
+    },
+  );
+  const data = (await res.json()) as UpdateApplicationStatusResponse & ApiErrorBody;
   if (!res.ok) return data;
   return data;
 }

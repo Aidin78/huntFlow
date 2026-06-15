@@ -46,6 +46,8 @@ function typeIcon(type: NotificationItem["type"]) {
       return "📋";
     case "MESSAGE":
       return "💬";
+    case "STATUS_EVENT":
+      return "↪";
     default:
       return "🔔";
   }

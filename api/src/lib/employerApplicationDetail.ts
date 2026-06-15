@@ -50,6 +50,11 @@ export const employerApplicationDetailSelect = {
       },
     },
   },
+  statusEvents: {
+    orderBy: { at: 'desc' as const },
+    take: 15,
+    select: { from: true, to: true, at: true, note: true },
+  },
 } as const;
 
 export function mapEmployerApplicationDetail(row: {
@@ -98,6 +103,12 @@ export function mapEmployerApplicationDetail(row: {
       sender: { name: string | null; email: string };
     }>;
   } | null;
+  statusEvents: Array<{
+    from: string | null;
+    to: string;
+    at: Date;
+    note: string | null;
+  }>;
 }) {
   const lastMessage = row.thread?.messages[0];
   return {
@@ -130,5 +141,11 @@ export function mapEmployerApplicationDetail(row: {
           }
         : null,
     },
+    statusHistory: row.statusEvents.map((e) => ({
+      from: e.from,
+      to: e.to,
+      at: e.at.toISOString(),
+      note: e.note,
+    })),
   };
 }

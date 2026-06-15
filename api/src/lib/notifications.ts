@@ -47,16 +47,27 @@ export async function getCompanyEmployerUserIds(companyId: string): Promise<stri
   return rows.map((r) => r.userId);
 }
 
-export function buildNotificationHref(role: UserRole, jobApplicationId: string | null): string | null {
+export function buildNotificationHref(
+  role: UserRole,
+  jobApplicationId: string | null,
+  type?: NotificationTypeValue,
+): string | null {
   if (!jobApplicationId) return null;
+  if (type === 'STATUS_EVENT' && role === UserRole.JOB_SEEKER) {
+    return `/dashboard/seeker/applications/${jobApplicationId}`;
+  }
   if (role === UserRole.EMPLOYER) {
     return `/dashboard/employer/applications/${jobApplicationId}?tab=messages`;
   }
   return `/dashboard/seeker/applications/${jobApplicationId}?tab=messages`;
 }
 
-function notificationHref(role: UserRole, jobApplicationId: string | null): string | null {
-  return buildNotificationHref(role, jobApplicationId);
+function notificationHref(
+  role: UserRole,
+  jobApplicationId: string | null,
+  type: NotificationTypeValue,
+): string | null {
+  return buildNotificationHref(role, jobApplicationId, type);
 }
 
 function mapNotification(
@@ -80,7 +91,7 @@ function mapNotification(
     createdAt: row.createdAt.toISOString(),
     readAt: row.readAt?.toISOString() ?? null,
     jobApplicationId: row.jobApplicationId,
-    href: notificationHref(recipientRole, row.jobApplicationId),
+    href: notificationHref(recipientRole, row.jobApplicationId, row.type),
     actor: row.actor
       ? { id: row.actor.id, name: row.actor.name, email: row.actor.email }
       : null,
@@ -178,6 +189,41 @@ export async function notifyApplicationMessage(opts: {
     actorUserId: opts.senderUserId,
     jobApplicationId: opts.jobApplicationId,
     messageId: opts.messageId,
+  });
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  APPLIED: 'Applied',
+  INTERVIEW: 'Interview',
+  OFFER: 'Offer',
+  REJECTED: 'Rejected',
+  ARCHIVED: 'Archived',
+  DRAFT: 'Draft',
+};
+
+function statusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status;
+}
+
+export async function notifyApplicationStatusChange(opts: {
+  jobApplicationId: string;
+  seekerUserId: string;
+  actorUserId: string;
+  actorName: string;
+  from: string;
+  to: string;
+  applicationTitle: string;
+}) {
+  const toLabel = statusLabel(opts.to);
+  const title = `Status updated: ${toLabel}`;
+  const body = `${opts.actorName} moved "${opts.applicationTitle}" from ${statusLabel(opts.from)} to ${toLabel}.`;
+
+  await createNotificationIfEnabled(opts.seekerUserId, 'STATUS_EVENT', {
+    type: 'STATUS_EVENT',
+    title,
+    body,
+    actorUserId: opts.actorUserId,
+    jobApplicationId: opts.jobApplicationId,
   });
 }
 

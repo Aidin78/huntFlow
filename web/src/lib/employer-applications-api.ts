@@ -39,6 +39,13 @@ export type SeekerProfilePublic = {
   githubUrl: string | null;
 } | null;
 
+export type StatusHistoryEvent = {
+  from: string | null;
+  to: string;
+  at: string;
+  note: string | null;
+};
+
 export type EmployerApplicationDetailResponse = {
   application: {
     id: string;
@@ -69,6 +76,7 @@ export type EmployerApplicationDetailResponse = {
     messageCount: number;
     lastMessage: { body: string; createdAt: string; senderName: string } | null;
   };
+  statusHistory: StatusHistoryEvent[];
 };
 
 export type EmployerApplicationsQuery = {
@@ -120,6 +128,33 @@ export async function fetchEmployerApplicationDetail(
     cache: "no-store",
   });
   const data = (await res.json()) as EmployerApplicationDetailResponse & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export type UpdateEmployerApplicationStatusBody = {
+  status: Extract<JobApplicationStatus, "INTERVIEW" | "OFFER" | "REJECTED">;
+  note?: string;
+};
+
+export type UpdateApplicationStatusResponse = {
+  application: { id: string; status: JobApplicationStatus; updatedAt: string };
+  event: StatusHistoryEvent;
+};
+
+export async function updateEmployerApplicationStatus(
+  id: string,
+  body: UpdateEmployerApplicationStatusBody,
+): Promise<UpdateApplicationStatusResponse | ApiErrorBody> {
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/employer/applications/${encodeURIComponent(id)}/status`,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  const data = (await res.json()) as UpdateApplicationStatusResponse & ApiErrorBody;
   if (!res.ok) return data;
   return data;
 }

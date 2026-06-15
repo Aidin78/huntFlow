@@ -4,6 +4,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
+import { ApplicationPipelineControl } from "@/components/applications/ApplicationPipelineControl";
+import { ApplicationStatusHistory } from "@/components/applications/ApplicationStatusHistory";
 import { BackLink } from "@/components/dashboard/BackLink";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
@@ -15,6 +17,8 @@ import { fetchAuthenticatedFileBlobUrl } from "@/lib/authenticated-file";
 import {
   fetchEmployerApplicationDetail,
   type EmployerApplicationDetailResponse,
+  type JobApplicationStatus,
+  type StatusHistoryEvent,
 } from "@/lib/employer-applications-api";
 import { workArrangementLabel } from "@/lib/job-listings-api";
 
@@ -87,6 +91,18 @@ export function EmployerApplicationDetail() {
     void load();
   }, [load]);
 
+  function handleStatusUpdated(status: JobApplicationStatus, event: StatusHistoryEvent) {
+    setData((prev) =>
+      prev
+        ? {
+            ...prev,
+            application: { ...prev.application, status, updatedAt: event.at },
+            statusHistory: [event, ...prev.statusHistory],
+          }
+        : prev,
+    );
+  }
+
   useEffect(() => {
     let revoked: string | null = null;
     setResumeBlobUrl(null);
@@ -136,12 +152,18 @@ export function EmployerApplicationDetail() {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{displayName}</h1>
-            <StatusBadge status={data.application.status} size="md" />
           </div>
           <p className="mt-1 text-sm font-medium text-emerald-800 dark:text-emerald-300">
             {data.application.title}
           </p>
           <p className="mt-1 text-sm text-zinc-500">{data.applicant.email}</p>
+          <div className="mt-4">
+            <ApplicationPipelineControl
+              applicationId={data.application.id}
+              currentStatus={data.application.status}
+              onUpdated={handleStatusUpdated}
+            />
+          </div>
         </div>
       </div>
 
@@ -261,6 +283,8 @@ export function EmployerApplicationDetail() {
             <StatusBadge status={data.application.status} size="md" />
             <span className="text-sm text-zinc-500">Applied {formatDate(data.application.appliedAt)}</span>
           </div>
+          <h4 className="mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-500">Status history</h4>
+          <ApplicationStatusHistory events={data.statusHistory} className="mt-3 space-y-3" />
           {data.jobListing ? (
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
               Posting:{" "}

@@ -30,6 +30,12 @@ describe('buildNotificationHref', () => {
     );
   });
 
+  it('returns seeker application link without messages tab for status events', () => {
+    expect(buildNotificationHref(UserRole.JOB_SEEKER, 'app-1', 'STATUS_EVENT')).toBe(
+      '/dashboard/seeker/applications/app-1',
+    );
+  });
+
   it('returns null without application id', () => {
     expect(buildNotificationHref(UserRole.EMPLOYER, null)).toBeNull();
   });

@@ -4,12 +4,14 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
+import { ApplicationStatusHistory } from "@/components/applications/ApplicationStatusHistory";
 import { BackLink } from "@/components/dashboard/BackLink";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { DashboardTabs } from "@/components/dashboard/DashboardTabs";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
-import { ActionLink, LinkButton } from "@/components/ui/button";
+import { ActionLink, Button, LinkButton } from "@/components/ui/button";
 import {
+  archiveSeekerApplication,
   fetchSeekerApplicationDetail,
   type SeekerApplicationDetailResponse,
 } from "@/lib/seeker-applications-api";
@@ -37,6 +39,8 @@ export function SeekerApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("application");
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("tab") === "messages") {
@@ -62,6 +66,37 @@ export function SeekerApplicationDetail() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleArchive() {
+    if (!data || data.application.status === "ARCHIVED") return;
+    if (!window.confirm("Archive this application? You can still view it later from your list.")) return;
+
+    setArchiving(true);
+    setArchiveError(null);
+    const result = await archiveSeekerApplication(data.application.id);
+    setArchiving(false);
+
+    if ("error" in result && result.error) {
+      setArchiveError(result.error.message ?? "Could not archive application");
+      return;
+    }
+
+    if ("application" in result) {
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              application: {
+                ...prev.application,
+                status: result.application.status,
+                updatedAt: result.application.updatedAt,
+              },
+              statusHistory: [result.event, ...prev.statusHistory],
+            }
+          : prev,
+      );
+    }
+  }
 
   if (loading) {
     return (
@@ -99,7 +134,21 @@ export function SeekerApplicationDetail() {
           </div>
           <StatusBadge status={data.application.status} size="md" />
         </div>
+        {data.application.status !== "ARCHIVED" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={archiving}
+            onClick={() => void handleArchive()}
+          >
+            {archiving ? "Archiving…" : "Archive application"}
+          </Button>
+        ) : null}
       </div>
+      {archiveError ? (
+        <p className="mb-4 text-sm text-red-600 dark:text-red-400">{archiveError}</p>
+      ) : null}
 
       <DashboardTabs
         className="mb-8"
@@ -118,6 +167,8 @@ export function SeekerApplicationDetail() {
       {tab === "application" ? (
         <DashboardCard title="Application details" accent="sky" className="max-w-3xl">
           <p className="text-sm text-zinc-500">Applied {formatDate(data.application.appliedAt)}</p>
+          <h4 className="mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-500">Status history</h4>
+          <ApplicationStatusHistory events={data.statusHistory} className="mt-3 space-y-3" />
           {data.jobListing ? (
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
               Posting:{" "}

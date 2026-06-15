@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { prisma } from '@huntflow/db';
+import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
 import { getEmployerApplication } from '../lib/applicationAccess';
+import { updateApplicationStatus } from '../lib/applicationStatus';
 import { listApplicationMessages, postApplicationMessage } from '../lib/applicationMessages';
 import {
   employerApplicationDetailSelect,
@@ -19,6 +20,11 @@ const applicationIdSchema = z.string().uuid();
 
 const messageBodySchema = z.object({
   body: z.string().min(1).max(4000),
+});
+
+const employerStatusBodySchema = z.object({
+  status: z.enum(['INTERVIEW', 'OFFER', 'REJECTED']),
+  note: z.string().max(500).optional(),
 });
 
 const applicationSelect = {
@@ -245,5 +251,47 @@ employerApplicationsRouter.post('/employer/applications/:id/messages', async (re
     // eslint-disable-next-line no-console
     console.error(e);
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not send message');
+  }
+});
+
+employerApplicationsRouter.patch('/employer/applications/:id/status', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = employerStatusBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateApplicationStatus({
+      applicationId: idParsed.data,
+      actorUserId: userId,
+      actorRole: UserRole.EMPLOYER,
+      toStatus: parsed.data.status,
+      note: parsed.data.note,
+    });
+
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : result.code === 'FORBIDDEN' ? 403 : 400;
+      sendError(res, status, result.code, result.message);
+      return;
+    }
+
+    res.json(result);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update application status');
   }
 });
