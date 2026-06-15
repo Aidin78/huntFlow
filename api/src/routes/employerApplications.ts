@@ -36,7 +36,7 @@ const applicationSelect = {
 
 export const employerApplicationsRouter = Router();
 
-employerApplicationsRouter.use(requireEmployer);
+employerApplicationsRouter.use('/employer', requireEmployer);
 
 employerApplicationsRouter.get('/employer/applications', async (req, res) => {
   const userId = req.userId;

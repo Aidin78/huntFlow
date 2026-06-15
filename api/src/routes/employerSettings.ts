@@ -21,7 +21,7 @@ const preferencesBodySchema = z
 
 export const employerSettingsRouter = Router();
 
-employerSettingsRouter.use(requireEmployer);
+employerSettingsRouter.use('/employer', requireEmployer);
 
 employerSettingsRouter.get('/employer/notification-preferences', async (req, res) => {
   const userId = req.userId;

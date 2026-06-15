@@ -33,7 +33,7 @@ const applicationSelect = {
 
 export const seekerApplicationsRouter = Router();
 
-seekerApplicationsRouter.use(requireJobSeeker);
+seekerApplicationsRouter.use('/seeker', requireJobSeeker);
 
 seekerApplicationsRouter.get('/seeker/applications', async (req, res) => {
   const userId = req.userId;

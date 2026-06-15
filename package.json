@@ -16,6 +16,12 @@
     "db:migrate": "npm --workspace @huntflow/db run prisma:migrate",
     "db:deploy": "npm --workspace @huntflow/db run prisma:deploy",
     "db:studio": "npm --workspace @huntflow/db run prisma:studio",
-    "db:seed": "npm --workspace @huntflow/db run prisma:seed"
+    "db:seed": "npm --workspace @huntflow/db run prisma:seed",
+    "db:test:setup": "node scripts/db-test-setup.mjs",
+    "test": "npm run test --workspace api && npm run test --workspace web",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0"
   }
 }

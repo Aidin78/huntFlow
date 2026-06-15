@@ -59,7 +59,7 @@ const employerListingSelect = {
 
 export const employerJobListingsRouter = Router();
 
-employerJobListingsRouter.use(requireEmployer);
+employerJobListingsRouter.use('/employer', requireEmployer);
 
 employerJobListingsRouter.get('/employer/company', async (req, res) => {
   const userId = req.userId;

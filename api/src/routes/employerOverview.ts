@@ -27,7 +27,7 @@ const applicationSelect = {
 
 export const employerOverviewRouter = Router();
 
-employerOverviewRouter.use(requireEmployer);
+employerOverviewRouter.use('/employer', requireEmployer);
 
 employerOverviewRouter.get('/employer/overview', async (req, res) => {
   const userId = req.userId;

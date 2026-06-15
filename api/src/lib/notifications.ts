@@ -47,12 +47,16 @@ export async function getCompanyEmployerUserIds(companyId: string): Promise<stri
   return rows.map((r) => r.userId);
 }
 
-function notificationHref(role: UserRole, jobApplicationId: string | null): string | null {
+export function buildNotificationHref(role: UserRole, jobApplicationId: string | null): string | null {
   if (!jobApplicationId) return null;
   if (role === UserRole.EMPLOYER) {
     return `/dashboard/employer/applications/${jobApplicationId}?tab=messages`;
   }
   return `/dashboard/seeker/applications/${jobApplicationId}?tab=messages`;
+}
+
+function notificationHref(role: UserRole, jobApplicationId: string | null): string | null {
+  return buildNotificationHref(role, jobApplicationId);
 }
 
 function mapNotification(

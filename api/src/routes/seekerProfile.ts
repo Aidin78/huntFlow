@@ -98,7 +98,7 @@ const upload = multer({
 
 export const seekerProfileRouter = Router();
 
-seekerProfileRouter.use(requireJobSeeker);
+seekerProfileRouter.use('/seeker', requireJobSeeker);
 
 seekerProfileRouter.get('/seeker/profile', async (req, res) => {
   const userId = req.userId;
