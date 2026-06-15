@@ -3,6 +3,16 @@ import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
 import { getSeekerApplication } from '../lib/applicationAccess';
+import {
+  createApplicationInterview,
+  createApplicationReminder,
+  deleteApplicationInterview,
+  deleteApplicationReminder,
+  listApplicationInterviews,
+  listApplicationReminders,
+  updateApplicationInterview,
+  updateApplicationReminder,
+} from '../lib/applicationSchedule';
 import { SEEKER_MANUAL_ALLOWED_STATUSES, updateApplicationStatus } from '../lib/applicationStatus';
 import { listApplicationMessages, postApplicationMessage } from '../lib/applicationMessages';
 import {
@@ -18,6 +28,37 @@ import {
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
 
 const applicationIdSchema = z.string().uuid();
+const interviewIdSchema = z.string().uuid();
+const reminderIdSchema = z.string().uuid();
+
+const createInterviewBodySchema = z.object({
+  title: z.string().min(1).max(200),
+  scheduledAt: z.coerce.date(),
+  durationMinutes: z.coerce.number().int().min(1).max(480).optional(),
+  location: z.string().max(200).optional(),
+  notes: z.string().max(4000).optional(),
+});
+
+const updateInterviewBodySchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  scheduledAt: z.coerce.date().optional(),
+  durationMinutes: z.coerce.number().int().min(1).max(480).nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  notes: z.string().max(4000).nullable().optional(),
+});
+
+const createReminderBodySchema = z.object({
+  title: z.string().min(1).max(200),
+  remindAt: z.coerce.date(),
+  notes: z.string().max(4000).optional(),
+});
+
+const updateReminderBodySchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  remindAt: z.coerce.date().optional(),
+  status: z.enum(['PENDING', 'DONE', 'CANCELLED']).optional(),
+  notes: z.string().max(4000).nullable().optional(),
+});
 
 const messageBodySchema = z.object({
   body: z.string().min(1).max(4000),
@@ -354,5 +395,263 @@ seekerApplicationsRouter.patch('/seeker/applications/:id/status', async (req, re
     // eslint-disable-next-line no-console
     console.error(e);
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not update application status');
+  }
+});
+
+seekerApplicationsRouter.get('/seeker/applications/:id/interviews', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationInterviews(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load interviews');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/interviews', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = createInterviewBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await createApplicationInterview(idParsed.data, userId, parsed.data);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not create interview');
+      return;
+    }
+    res.status(201).json({ interview: result.interview });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not create interview');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id/interviews/:interviewId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const interviewParsed = interviewIdSchema.safeParse(req.params.interviewId);
+  if (!idParsed.success || !interviewParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  const parsed = updateInterviewBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateApplicationInterview(
+      idParsed.data,
+      interviewParsed.data,
+      userId,
+      parsed.data,
+    );
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not update interview');
+      return;
+    }
+    res.json({ interview: result.interview });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update interview');
+  }
+});
+
+seekerApplicationsRouter.delete('/seeker/applications/:id/interviews/:interviewId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const interviewParsed = interviewIdSchema.safeParse(req.params.interviewId);
+  if (!idParsed.success || !interviewParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  try {
+    const result = await deleteApplicationInterview(idParsed.data, interviewParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Interview not found');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete interview');
+  }
+});
+
+seekerApplicationsRouter.get('/seeker/applications/:id/reminders', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationReminders(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load reminders');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/reminders', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = createReminderBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await createApplicationReminder(idParsed.data, userId, parsed.data);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not create reminder');
+      return;
+    }
+    res.status(201).json({ reminder: result.reminder });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not create reminder');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id/reminders/:reminderId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const reminderParsed = reminderIdSchema.safeParse(req.params.reminderId);
+  if (!idParsed.success || !reminderParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  const parsed = updateReminderBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateApplicationReminder(
+      idParsed.data,
+      reminderParsed.data,
+      userId,
+      parsed.data,
+    );
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not update reminder');
+      return;
+    }
+    res.json({ reminder: result.reminder });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update reminder');
+  }
+});
+
+seekerApplicationsRouter.delete('/seeker/applications/:id/reminders/:reminderId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const reminderParsed = reminderIdSchema.safeParse(req.params.reminderId);
+  if (!idParsed.success || !reminderParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  try {
+    const result = await deleteApplicationReminder(idParsed.data, reminderParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Reminder not found');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete reminder');
   }
 });

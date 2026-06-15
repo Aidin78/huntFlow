@@ -11,6 +11,7 @@ import { jobListingsRouter } from './routes/jobListings';
 import { filesRouter } from './routes/files';
 import { notificationsRouter } from './routes/notifications';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
+import { seekerUpcomingRouter } from './routes/seekerUpcoming';
 import { seekerProfileRouter } from './routes/seekerProfile';
 
 export function createApp(): express.Express {
@@ -32,6 +33,7 @@ export function createApp(): express.Express {
   app.use('/api', employerSettingsRouter);
   app.use('/api', employerApplicationsRouter);
   app.use('/api', seekerApplicationsRouter);
+  app.use('/api', seekerUpcomingRouter);
   app.use('/api', seekerProfileRouter);
   app.use('/api', filesRouter);
   app.use('/api', notificationsRouter);

@@ -3,7 +3,9 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { ApplicationInterviewsPanel } from "@/components/applications/ApplicationInterviewsPanel";
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
+import { ApplicationRemindersPanel } from "@/components/applications/ApplicationRemindersPanel";
 import { ApplicationStatusHistory } from "@/components/applications/ApplicationStatusHistory";
 import { SeekerApplicationStatusControl } from "@/components/applications/SeekerApplicationStatusControl";
 import { BackLink } from "@/components/dashboard/BackLink";
@@ -383,6 +385,10 @@ export function SeekerApplicationDetail() {
 
           <h4 className="mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-500">Status history</h4>
           <ApplicationStatusHistory events={data.statusHistory} className="mt-3 space-y-3" />
+
+          <ApplicationInterviewsPanel applicationId={data.application.id} />
+          <ApplicationRemindersPanel applicationId={data.application.id} />
+
           {data.jobListing ? (
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
               Posting:{" "}

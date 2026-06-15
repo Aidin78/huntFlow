@@ -387,6 +387,13 @@ function hoursAgoDate(hours) {
   return d;
 }
 
+function daysFromNowDate(days, hour = 10) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(hour, 0, 0, 0);
+  return d;
+}
+
 function applicationKey(seekerEmail, companyName, listingTitle) {
   return `${seekerEmail}::${companyName}::${listingTitle}`;
 }
@@ -687,6 +694,65 @@ async function seedDemoNotifications(usersByEmail, listingIdx) {
   return created;
 }
 
+async function seedDemoSchedule(usersByEmail, listingIdx) {
+  const seeker = usersByEmail['alex.morgan@demo.huntflow.app'];
+  if (!seeker) return { interviews: 0, reminders: 0 };
+
+  let interviews = 0;
+  let reminders = 0;
+
+  const targets = [
+    { listingTitle: 'Senior Backend Engineer', companyName: demoCompanyNames[0] },
+    { listingTitle: 'Intern — Software Engineering', companyName: demoCompanyNames[0] },
+  ];
+
+  for (const target of targets) {
+    const listing = listingIdx.get(`${target.companyName}::${target.listingTitle}`);
+    if (!listing) continue;
+
+    const application = await prisma.jobApplication.findFirst({
+      where: { userId: seeker.id, jobListingId: listing.id },
+      select: { id: true },
+    });
+    if (!application) continue;
+
+    const existingInterview = await prisma.interview.count({
+      where: { jobApplicationId: application.id },
+    });
+    if (existingInterview === 0) {
+      await prisma.interview.create({
+        data: {
+          jobApplicationId: application.id,
+          title: target.listingTitle.includes('Intern') ? 'HR screen' : 'Technical interview',
+          scheduledAt: daysFromNowDate(target.listingTitle.includes('Intern') ? 5 : 3, 14),
+          durationMinutes: 45,
+          location: 'Zoom',
+          notes: 'Demo seeded interview',
+        },
+      });
+      interviews += 1;
+    }
+
+    const existingReminder = await prisma.reminder.count({
+      where: { jobApplicationId: application.id },
+    });
+    if (existingReminder === 0) {
+      await prisma.reminder.create({
+        data: {
+          jobApplicationId: application.id,
+          title: 'Follow up with recruiter',
+          remindAt: daysFromNowDate(-1, 9),
+          status: 'PENDING',
+          notes: 'Demo overdue reminder',
+        },
+      });
+      reminders += 1;
+    }
+  }
+
+  return { interviews, reminders };
+}
+
 async function main() {
   const companies = await upsertCompanies();
   const listingsCreated = await upsertListings(companies);
@@ -702,6 +768,10 @@ async function main() {
   const coverLettersUpdated = await backfillCoverLetters();
   const messagesCreated = await seedDemoMessages(usersByEmail, listingIdx);
   const notificationsCreated = await seedDemoNotifications(usersByEmail, listingIdx);
+  const { interviews: interviewsSeeded, reminders: remindersSeeded } = await seedDemoSchedule(
+    usersByEmail,
+    listingIdx,
+  );
 
   // eslint-disable-next-line no-console
   console.log('huntFlow demo seed complete.');
@@ -723,6 +793,10 @@ async function main() {
   console.log(`  Demo messages created: ${messagesCreated}`);
   // eslint-disable-next-line no-console
   console.log(`  Demo notifications created: ${notificationsCreated}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Demo interviews seeded: ${interviewsSeeded}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Demo reminders seeded: ${remindersSeeded}`);
   // eslint-disable-next-line no-console
   console.log('');
   // eslint-disable-next-line no-console
