@@ -25,7 +25,7 @@ describe('PATCH /api/seeker/applications/:id/status', () => {
     expect(res.body.event.to).toBe('ARCHIVED');
   });
 
-  it('rejects seeker setting interview status', async () => {
+  it('rejects seeker setting interview status on board application', async () => {
     const fx = await seedMinimalFixtures();
 
     const res = await getTestAgent()
@@ -33,7 +33,25 @@ describe('PATCH /api/seeker/applications/:id/status', () => {
       .set(authHeader(fx.seeker.token))
       .send({ status: 'INTERVIEW' });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(403);
+  });
+
+  it('allows seeker to set interview on manual application', async () => {
+    const fx = await seedMinimalFixtures();
+
+    const created = await getTestAgent()
+      .post('/api/seeker/applications')
+      .set(authHeader(fx.seeker.token))
+      .send({ title: 'Manual Role', companyName: 'Side Co' });
+    expect(created.status).toBe(201);
+
+    const res = await getTestAgent()
+      .patch(`/api/seeker/applications/${created.body.application.id}/status`)
+      .set(authHeader(fx.seeker.token))
+      .send({ status: 'INTERVIEW' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.application.status).toBe('INTERVIEW');
   });
 
   it('rejects employer on seeker status route', async () => {

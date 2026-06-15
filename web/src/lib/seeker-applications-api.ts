@@ -17,6 +17,8 @@ export type JobApplicationStatus =
   | "REJECTED"
   | "ARCHIVED";
 
+export type SeekerManualStatus = Exclude<JobApplicationStatus, "DRAFT">;
+
 export type SeekerApplication = {
   id: string;
   title: string;
@@ -24,6 +26,8 @@ export type SeekerApplication = {
   appliedAt: string | null;
   location: string | null;
   salaryText: string | null;
+  notes: string | null;
+  isManual: boolean;
   createdAt: string;
   updatedAt: string;
   company: { id: string; name: string };
@@ -33,6 +37,40 @@ export type SeekerApplication = {
 export type SeekerApplicationsResponse = {
   items: SeekerApplication[];
   statusCounts: Record<string, number>;
+};
+
+export type CreateManualApplicationInput = {
+  title: string;
+  companyName: string;
+  appliedAt?: string;
+  location?: string;
+  salaryText?: string;
+  notes?: string;
+  sourceUrl?: string;
+};
+
+export type CreateManualApplicationResponse = {
+  application: {
+    id: string;
+    title: string;
+    status: JobApplicationStatus;
+    appliedAt: string | null;
+    location: string | null;
+    salaryText: string | null;
+    notes: string | null;
+    isManual: true;
+    company: { id: string; name: string };
+  };
+};
+
+export type UpdateManualApplicationInput = {
+  title?: string;
+  companyName?: string;
+  appliedAt?: string | null;
+  location?: string | null;
+  salaryText?: string | null;
+  notes?: string | null;
+  sourceUrl?: string | null;
 };
 
 export type ApiErrorBody = {
@@ -69,20 +107,56 @@ export async function fetchSeekerApplications(): Promise<
   return data;
 }
 
-export async function archiveSeekerApplication(
+export async function createManualApplication(
+  body: CreateManualApplicationInput,
+): Promise<CreateManualApplicationResponse | ApiErrorBody> {
+  const res = await fetch(`${getPublicApiBaseUrl()}/api/seeker/applications`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json()) as CreateManualApplicationResponse & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function updateManualApplication(
   id: string,
+  patch: UpdateManualApplicationInput,
+): Promise<{ application: { id: string; title: string; updatedAt: string } } | ApiErrorBody> {
+  const res = await fetch(`${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  const data = (await res.json()) as
+    | { application: { id: string; title: string; updatedAt: string } }
+    | ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function updateSeekerApplicationStatus(
+  id: string,
+  status: SeekerManualStatus,
 ): Promise<UpdateApplicationStatusResponse | ApiErrorBody> {
   const res = await fetch(
     `${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(id)}/status`,
     {
       method: "PATCH",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ARCHIVED" }),
+      body: JSON.stringify({ status }),
     },
   );
   const data = (await res.json()) as UpdateApplicationStatusResponse & ApiErrorBody;
   if (!res.ok) return data;
   return data;
+}
+
+export async function archiveSeekerApplication(
+  id: string,
+): Promise<UpdateApplicationStatusResponse | ApiErrorBody> {
+  return updateSeekerApplicationStatus(id, "ARCHIVED");
 }
 
 export function applicationStatusLabel(status: JobApplicationStatus): string {

@@ -61,14 +61,14 @@ employerOverviewRouter.get('/employer/overview', async (req, res) => {
         select: employerListingSelect,
       }),
       prisma.jobApplication.findMany({
-        where: { companyId },
+        where: { companyId, jobListingId: { not: null } },
         orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }],
         take: 5,
         select: applicationSelect,
       }),
       prisma.jobApplication.groupBy({
         by: ['status'],
-        where: { companyId },
+        where: { companyId, jobListingId: { not: null } },
         _count: { _all: true },
       }),
     ]);

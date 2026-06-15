@@ -3,13 +3,18 @@ import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
 import { getSeekerApplication } from '../lib/applicationAccess';
-import { updateApplicationStatus } from '../lib/applicationStatus';
+import { SEEKER_MANUAL_ALLOWED_STATUSES, updateApplicationStatus } from '../lib/applicationStatus';
 import { listApplicationMessages, postApplicationMessage } from '../lib/applicationMessages';
 import {
   employerApplicationDetailSelect,
   mapEmployerApplicationDetail,
 } from '../lib/employerApplicationDetail';
 import { sendError } from '../lib/errors';
+import {
+  createManualApplication,
+  displayCompanyName,
+  updateManualApplication,
+} from '../lib/manualApplication';
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
 
 const applicationIdSchema = z.string().uuid();
@@ -26,11 +31,68 @@ const applicationSelect = {
   coverLetter: true,
   location: true,
   salaryText: true,
+  notes: true,
+  jobListingId: true,
   createdAt: true,
   updatedAt: true,
   company: { select: { id: true, name: true } },
   jobListing: { select: { id: true, title: true } },
 } as const;
+
+const createManualBodySchema = z.object({
+  title: z.string().min(1).max(200),
+  companyName: z.string().min(1).max(200),
+  appliedAt: z.coerce.date().optional(),
+  location: z.string().max(200).optional(),
+  salaryText: z.string().max(100).optional(),
+  notes: z.string().max(4000).optional(),
+  sourceUrl: z.string().url().optional(),
+});
+
+const updateManualBodySchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  companyName: z.string().min(1).max(200).optional(),
+  appliedAt: z.coerce.date().nullable().optional(),
+  location: z.string().max(200).nullable().optional(),
+  salaryText: z.string().max(100).nullable().optional(),
+  notes: z.string().max(4000).nullable().optional(),
+  sourceUrl: z.string().url().nullable().optional(),
+});
+
+function mapSeekerListItem(row: {
+  id: string;
+  title: string;
+  status: string;
+  appliedAt: Date | null;
+  coverLetter: string | null;
+  location: string | null;
+  salaryText: string | null;
+  notes: string | null;
+  jobListingId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  company: { id: string; name: string };
+  jobListing: { id: string; title: string } | null;
+}) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    appliedAt: row.appliedAt,
+    coverLetter: row.coverLetter,
+    location: row.location,
+    salaryText: row.salaryText,
+    notes: row.notes,
+    isManual: row.jobListingId == null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    company: {
+      id: row.company.id,
+      name: displayCompanyName(row.company.name),
+    },
+    jobListing: row.jobListing,
+  };
+}
 
 export const seekerApplicationsRouter = Router();
 
@@ -55,11 +117,79 @@ seekerApplicationsRouter.get('/seeker/applications', async (req, res) => {
       return acc;
     }, {});
 
-    res.json({ items, statusCounts });
+    res.json({
+      items: items.map(mapSeekerListItem),
+      statusCounts,
+    });
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not load applications');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const parsed = createManualBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await createManualApplication(userId, parsed.data);
+    if (!result.ok) {
+      const status = result.code === 'CONFLICT' ? 409 : 400;
+      sendError(res, status, result.code, result.message);
+      return;
+    }
+
+    res.status(201).json(result);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not create application');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = updateManualBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateManualApplication(userId, idParsed.data, parsed.data);
+    if (!result.ok) {
+      const status =
+        result.code === 'NOT_FOUND' ? 404 : result.code === 'FORBIDDEN' ? 403 : result.code === 'CONFLICT' ? 409 : 400;
+      sendError(res, status, result.code, result.message);
+      return;
+    }
+
+    res.json(result);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update application');
   }
 });
 
@@ -183,7 +313,7 @@ seekerApplicationsRouter.post('/seeker/applications/:id/messages', async (req, r
 });
 
 const seekerStatusBodySchema = z.object({
-  status: z.literal('ARCHIVED'),
+  status: z.enum(SEEKER_MANUAL_ALLOWED_STATUSES),
 });
 
 seekerApplicationsRouter.patch('/seeker/applications/:id/status', async (req, res) => {

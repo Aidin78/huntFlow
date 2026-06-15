@@ -29,4 +29,5 @@ export async function loginViaUi(
   await page.getByLabel('Password').fill(password);
   const roleLabel = role === 'employer' ? 'Employer' : 'Job seeker';
   await page.getByRole('button', { name: `Sign in as ${roleLabel}` }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 15_000 });
 }

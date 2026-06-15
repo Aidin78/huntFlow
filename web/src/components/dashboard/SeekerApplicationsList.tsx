@@ -39,6 +39,7 @@ const STATUS_FILTERS: { id: "all" | JobApplicationStatus; label: string }[] = [
   { id: "INTERVIEW", label: "Interview" },
   { id: "OFFER", label: "Offer" },
   { id: "REJECTED", label: "Rejected" },
+  { id: "ARCHIVED", label: "Archived" },
 ];
 
 export function SeekerApplicationsList() {
@@ -79,9 +80,14 @@ export function SeekerApplicationsList() {
         title="Applications"
         subtitle="Track every role you applied to — status, messages, and cover letters in one place."
         actions={
-          <LinkButton href="/jobs" variant="success" size="md">
-            Browse jobs
-          </LinkButton>
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/dashboard/seeker/applications/new" variant="emerald" size="md">
+              Add application
+            </LinkButton>
+            <LinkButton href="/jobs" variant="success" size="md">
+              Browse jobs
+            </LinkButton>
+          </div>
         }
       />
 
@@ -148,15 +154,20 @@ export function SeekerApplicationsList() {
           title={items.length === 0 ? "No applications yet" : "No matches"}
           description={
             items.length === 0
-              ? "When you apply on the job board, the role appears here automatically."
+              ? "Apply on the job board or add an off-platform application to start tracking."
               : "Try a different status filter to see more applications."
           }
           icon={<PipelineIcon />}
           action={
             items.length === 0 ? (
-              <LinkButton href="/jobs" variant="emerald" size="lg">
-                Explore open roles
-              </LinkButton>
+              <div className="flex flex-wrap justify-center gap-3">
+                <LinkButton href="/dashboard/seeker/applications/new" variant="emerald" size="lg">
+                  Add application
+                </LinkButton>
+                <LinkButton href="/jobs" variant="secondary" size="lg">
+                  Explore open roles
+                </LinkButton>
+              </div>
             ) : (
               <button
                 type="button"
@@ -179,6 +190,11 @@ export function SeekerApplicationsList() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{row.title}</p>
                   <StatusBadge status={row.status} />
+                  {row.isManual ? (
+                    <span className="rounded-full bg-amber-500/12 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-500/20 dark:text-amber-200">
+                      Manual
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-sm font-medium text-sky-800 dark:text-sky-300">{row.company.name}</p>
                 <p className="mt-2 text-xs text-zinc-500">

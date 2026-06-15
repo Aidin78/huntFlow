@@ -5,9 +5,17 @@ import { notifyApplicationStatusChange } from './notifications';
 
 export const EMPLOYER_ALLOWED_STATUSES = ['INTERVIEW', 'OFFER', 'REJECTED'] as const;
 export const SEEKER_ALLOWED_STATUSES = ['ARCHIVED'] as const;
+export const SEEKER_MANUAL_ALLOWED_STATUSES = [
+  'APPLIED',
+  'INTERVIEW',
+  'OFFER',
+  'REJECTED',
+  'ARCHIVED',
+] as const;
 
 export type EmployerAllowedStatus = (typeof EMPLOYER_ALLOWED_STATUSES)[number];
 export type SeekerAllowedStatus = (typeof SEEKER_ALLOWED_STATUSES)[number];
+export type SeekerManualAllowedStatus = (typeof SEEKER_MANUAL_ALLOWED_STATUSES)[number];
 
 export type UpdateApplicationStatusInput = {
   applicationId: string;
@@ -33,6 +41,10 @@ function isSeekerStatus(status: JobApplicationStatus): status is SeekerAllowedSt
   return (SEEKER_ALLOWED_STATUSES as readonly string[]).includes(status);
 }
 
+function isSeekerManualStatus(status: JobApplicationStatus): status is SeekerManualAllowedStatus {
+  return (SEEKER_MANUAL_ALLOWED_STATUSES as readonly string[]).includes(status);
+}
+
 export async function updateApplicationStatus(
   input: UpdateApplicationStatusInput,
 ): Promise<UpdateApplicationStatusResult> {
@@ -47,9 +59,7 @@ export async function updateApplicationStatus(
       return { ok: false, code: 'FORBIDDEN', message: 'Employers can only set Interview, Offer, or Rejected' };
     }
   } else if (actorRole === UserRole.JOB_SEEKER) {
-    if (!isSeekerStatus(toStatus)) {
-      return { ok: false, code: 'FORBIDDEN', message: 'Job seekers can only archive applications' };
-    }
+    // validated after loading application (manual vs board)
   } else {
     return { ok: false, code: 'FORBIDDEN', message: 'Not allowed' };
   }
@@ -70,12 +80,24 @@ export async function updateApplicationStatus(
       status: true,
       title: true,
       userId: true,
+      jobListingId: true,
       user: { select: { id: true, name: true, email: true } },
     },
   });
 
   if (!current) {
     return { ok: false, code: 'NOT_FOUND', message: 'Application not found' };
+  }
+
+  if (actorRole === UserRole.JOB_SEEKER) {
+    const isManual = current.jobListingId == null;
+    if (isManual) {
+      if (!isSeekerManualStatus(toStatus)) {
+        return { ok: false, code: 'FORBIDDEN', message: 'Invalid status for manual application' };
+      }
+    } else if (!isSeekerStatus(toStatus)) {
+      return { ok: false, code: 'FORBIDDEN', message: 'Job seekers can only archive board applications' };
+    }
   }
 
   if (current.status === toStatus) {

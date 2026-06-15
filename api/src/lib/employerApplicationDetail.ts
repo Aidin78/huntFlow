@@ -1,4 +1,5 @@
 import { userFileDto } from './userFileDto';
+import { displayCompanyName } from './manualApplication';
 
 export const employerApplicationDetailSelect = {
   id: true,
@@ -6,10 +7,13 @@ export const employerApplicationDetailSelect = {
   status: true,
   appliedAt: true,
   coverLetter: true,
+  notes: true,
   location: true,
   salaryText: true,
+  jobListingId: true,
   createdAt: true,
   updatedAt: true,
+  company: { select: { id: true, name: true } },
   user: {
     select: {
       id: true,
@@ -55,6 +59,11 @@ export const employerApplicationDetailSelect = {
     take: 15,
     select: { from: true, to: true, at: true, note: true },
   },
+  links: {
+    where: { label: 'Job posting' },
+    take: 1,
+    select: { url: true },
+  },
 } as const;
 
 export function mapEmployerApplicationDetail(row: {
@@ -63,10 +72,13 @@ export function mapEmployerApplicationDetail(row: {
   status: string;
   appliedAt: Date | null;
   coverLetter: string | null;
+  notes: string | null;
   location: string | null;
   salaryText: string | null;
+  jobListingId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  company: { id: string; name: string };
   user: {
     id: string;
     name: string | null;
@@ -109,8 +121,10 @@ export function mapEmployerApplicationDetail(row: {
     at: Date;
     note: string | null;
   }>;
+  links: Array<{ url: string }>;
 }) {
   const lastMessage = row.thread?.messages[0];
+  const isManual = row.jobListingId == null;
   return {
     application: {
       id: row.id,
@@ -118,11 +132,18 @@ export function mapEmployerApplicationDetail(row: {
       status: row.status,
       appliedAt: row.appliedAt?.toISOString() ?? null,
       coverLetter: row.coverLetter,
+      notes: row.notes,
       location: row.location,
       salaryText: row.salaryText,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      isManual,
     },
+    company: {
+      id: row.company.id,
+      name: displayCompanyName(row.company.name),
+    },
+    sourceUrl: row.links[0]?.url ?? null,
     applicant: {
       id: row.user.id,
       name: row.user.name,

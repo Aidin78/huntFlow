@@ -7,7 +7,7 @@ export async function getEmployerApplication(applicationId: string, employerUser
   if (!companyId) return null;
 
   return prisma.jobApplication.findFirst({
-    where: { id: applicationId, companyId },
+    where: { id: applicationId, companyId, jobListingId: { not: null } },
     select: { id: true, userId: true, companyId: true, jobListingId: true },
   });
 }

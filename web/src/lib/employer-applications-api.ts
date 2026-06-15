@@ -53,11 +53,15 @@ export type EmployerApplicationDetailResponse = {
     status: JobApplicationStatus;
     appliedAt: string | null;
     coverLetter: string | null;
+    notes?: string | null;
     location: string | null;
     salaryText: string | null;
     createdAt: string;
     updatedAt: string;
+    isManual?: boolean;
   };
+  company?: { id: string; name: string };
+  sourceUrl?: string | null;
   applicant: {
     id: string;
     name: string | null;

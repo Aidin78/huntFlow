@@ -102,6 +102,7 @@ employerApplicationsRouter.get('/employer/applications', async (req, res) => {
     const rows = await prisma.jobApplication.findMany({
       where: {
         companyId,
+        jobListingId: { not: null },
         ...(jobListingId ? { jobListingId } : {}),
       },
       orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }],
