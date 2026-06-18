@@ -134,6 +134,12 @@ export const marketingFeatures: FeatureItem[] = [
     description:
       "Message employers on board applications and get in-app alerts when status changes or new replies arrive.",
   },
+  {
+    icon: "🏷",
+    title: "Tags & filters",
+    description:
+      "Label applications (remote, referral, priority) and slice your pipeline by tag, status, or source in one view.",
+  },
 ];
 
 export const marketingWhy: WhyItem[] = [

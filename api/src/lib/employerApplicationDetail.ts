@@ -64,6 +64,10 @@ export const employerApplicationDetailSelect = {
     take: 1,
     select: { url: true },
   },
+  tags: {
+    select: { tag: { select: { id: true, name: true, color: true } } },
+    orderBy: { tag: { name: 'asc' as const } },
+  },
 } as const;
 
 export function mapEmployerApplicationDetail(row: {
@@ -122,6 +126,7 @@ export function mapEmployerApplicationDetail(row: {
     note: string | null;
   }>;
   links: Array<{ url: string }>;
+  tags: Array<{ tag: { id: string; name: string; color: string | null } }>;
 }) {
   const lastMessage = row.thread?.messages[0];
   const isManual = row.jobListingId == null;
@@ -168,5 +173,6 @@ export function mapEmployerApplicationDetail(row: {
       at: e.at.toISOString(),
       note: e.note,
     })),
+    tags: row.tags.map((entry) => entry.tag),
   };
 }

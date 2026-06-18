@@ -4,6 +4,7 @@ import type {
   EmployerApplicationDetailResponse,
   UpdateApplicationStatusResponse,
 } from "@/lib/employer-applications-api";
+import type { SeekerTagSummary } from "@/lib/seeker-tags-api";
 
 export type SeekerApplicationDetailResponse = EmployerApplicationDetailResponse;
 
@@ -32,6 +33,7 @@ export type SeekerApplication = {
   updatedAt: string;
   company: { id: string; name: string };
   jobListing: { id: string; title: string } | null;
+  tags: SeekerTagSummary[];
 };
 
 export type SeekerApplicationsResponse = {

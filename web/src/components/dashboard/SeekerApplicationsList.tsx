@@ -1,16 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { TagChipList } from "@/components/ui/TagChip";
 import { ActionLink, LinkButton } from "@/components/ui/button";
 import {
   fetchSeekerApplications,
   type JobApplicationStatus,
   type SeekerApplication,
 } from "@/lib/seeker-applications-api";
+import { tagChipStyle, type SeekerTagSummary } from "@/lib/seeker-tags-api";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -42,11 +45,105 @@ const STATUS_FILTERS: { id: "all" | JobApplicationStatus; label: string }[] = [
   { id: "ARCHIVED", label: "Archived" },
 ];
 
+type SourceFilter = "all" | "board" | "manual";
+
+type ListFilters = {
+  q: string;
+  status: "all" | JobApplicationStatus;
+  tagIds: string[];
+  source: SourceFilter;
+};
+
+const fieldClass =
+  "w-full rounded-2xl border border-zinc-200/90 bg-white/90 px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition placeholder:text-zinc-400 focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-50 dark:placeholder:text-zinc-500";
+
+function filtersFromSearchParams(params: URLSearchParams): ListFilters {
+  const status = params.get("status");
+  const validStatus = STATUS_FILTERS.some((f) => f.id === status) ? (status as ListFilters["status"]) : "all";
+  const source = params.get("source");
+  const validSource: SourceFilter =
+    source === "board" || source === "manual" ? source : "all";
+  const tags = params.get("tags");
+  return {
+    q: params.get("q") ?? "",
+    status: validStatus,
+    tagIds: tags ? tags.split(",").filter(Boolean) : [],
+    source: validSource,
+  };
+}
+
+function filtersToQuery(filters: ListFilters): string {
+  const params = new URLSearchParams();
+  if (filters.q.trim()) params.set("q", filters.q.trim());
+  if (filters.status !== "all") params.set("status", filters.status);
+  if (filters.tagIds.length > 0) params.set("tags", filters.tagIds.join(","));
+  if (filters.source !== "all") params.set("source", filters.source);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+function matchesFilters(row: SeekerApplication, filters: ListFilters): boolean {
+  if (filters.status !== "all" && row.status !== filters.status) return false;
+  if (filters.source === "board" && row.isManual) return false;
+  if (filters.source === "manual" && !row.isManual) return false;
+  if (filters.tagIds.length > 0) {
+    const rowTagIds = new Set((row.tags ?? []).map((tag) => tag.id));
+    const hasAny = filters.tagIds.some((id) => rowTagIds.has(id));
+    if (!hasAny) return false;
+  }
+  const q = filters.q.trim().toLowerCase();
+  if (q) {
+    const haystack = `${row.title} ${row.company.name}`.toLowerCase();
+    if (!haystack.includes(q)) return false;
+  }
+  return true;
+}
+
+function collectTagsFromItems(items: SeekerApplication[]): SeekerTagSummary[] {
+  const map = new Map<string, SeekerTagSummary>();
+  for (const row of items) {
+    for (const tag of row.tags ?? []) {
+      map.set(tag.id, tag);
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function SeekerApplicationsList() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+
   const [items, setItems] = useState<SeekerApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | JobApplicationStatus>("all");
+  const [filters, setFilters] = useState<ListFilters>(() =>
+    filtersFromSearchParams(new URLSearchParams(searchParams.toString())),
+  );
+
+  const syncFiltersToUrl = useCallback(
+    (next: ListFilters) => {
+      startTransition(() => {
+        router.replace(`/dashboard/seeker/applications${filtersToQuery(next)}`, { scroll: false });
+      });
+    },
+    [router],
+  );
+
+  const updateFilters = useCallback(
+    (patch: Partial<ListFilters>) => {
+      setFilters((prev) => {
+        const next = { ...prev, ...patch };
+        syncFiltersToUrl(next);
+        return next;
+      });
+    },
+    [syncFiltersToUrl],
+  );
+
+  useEffect(() => {
+    setFilters(filtersFromSearchParams(new URLSearchParams(searchParams.toString())));
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -57,7 +154,7 @@ export function SeekerApplicationsList() {
       return;
     }
     if ("items" in result) {
-      setItems(result.items);
+      setItems(result.items.map((row) => ({ ...row, tags: row.tags ?? [] })));
     }
     setLoading(false);
   }, []);
@@ -66,19 +163,40 @@ export function SeekerApplicationsList() {
     void load();
   }, [load]);
 
+  const availableTags = useMemo(() => collectTagsFromItems(items), [items]);
+
   const filtered = useMemo(
-    () => (statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter)),
-    [items, statusFilter],
+    () => items.filter((row) => matchesFilters(row, filters)),
+    [items, filters],
   );
 
   const activeCount = items.filter((i) => i.status === "INTERVIEW" || i.status === "OFFER").length;
+
+  const hasActiveFilters =
+    filters.q.trim() !== "" ||
+    filters.status !== "all" ||
+    filters.tagIds.length > 0 ||
+    filters.source !== "all";
+
+  function clearFilters() {
+    const next: ListFilters = { q: "", status: "all", tagIds: [], source: "all" };
+    setFilters(next);
+    syncFiltersToUrl(next);
+  }
+
+  function toggleTagFilter(tagId: string) {
+    const nextIds = filters.tagIds.includes(tagId)
+      ? filters.tagIds.filter((id) => id !== tagId)
+      : [...filters.tagIds, tagId];
+    updateFilters({ tagIds: nextIds });
+  }
 
   return (
     <div className="p-4 sm:p-8 lg:p-10">
       <DashboardPageHeader
         badge="Pipeline"
         title="Applications"
-        subtitle="Track every role you applied to — status, messages, and cover letters in one place."
+        subtitle="Track every role you applied to — filter by tag, status, or source."
         actions={
           <div className="flex flex-wrap gap-2">
             <LinkButton href="/dashboard/seeker/applications/new" variant="emerald" size="md">
@@ -109,28 +227,110 @@ export function SeekerApplicationsList() {
       </div>
 
       {items.length > 0 ? (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((f) => {
-            const count =
-              f.id === "all" ? items.length : items.filter((i) => i.status === f.id).length;
-            if (f.id !== "all" && count === 0) return null;
-            const active = statusFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setStatusFilter(f.id)}
-                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  active
-                    ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
-                    : "border border-zinc-200 bg-white text-zinc-600 hover:border-emerald-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
-                }`}
-              >
-                {f.label}
-                <span className={active ? "text-emerald-100" : "text-zinc-400"}>{count}</span>
-              </button>
-            );
-          })}
+        <div className="mb-6 space-y-4">
+          <div>
+            <label htmlFor="app-search" className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Search
+            </label>
+            <input
+              id="app-search"
+              value={filters.q}
+              onChange={(e) => updateFilters({ q: e.target.value })}
+              placeholder="Role or company…"
+              className={`${fieldClass} mt-1.5`}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(["all", "board", "manual"] as const).map((source) => {
+              const active = filters.source === source;
+              const label = source === "all" ? "All sources" : source === "board" ? "Board" : "Manual";
+              return (
+                <button
+                  key={source}
+                  type="button"
+                  onClick={() => updateFilters({ source })}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-sky-600 text-white shadow-sm"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-sky-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {STATUS_FILTERS.map((f) => {
+              const count =
+                f.id === "all" ? items.length : items.filter((i) => i.status === f.id).length;
+              if (f.id !== "all" && count === 0) return null;
+              const active = filters.status === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => updateFilters({ status: f.id })}
+                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                    active
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/25"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-emerald-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400"
+                  }`}
+                >
+                  {f.label}
+                  <span className={active ? "text-emerald-100" : "text-zinc-400"}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {availableTags.length > 0 ? (
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Tags</span>
+                {filters.tagIds.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => updateFilters({ tagIds: [] })}
+                    className="text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                  >
+                    Clear tags
+                  </button>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const active = filters.tagIds.includes(tag.id);
+                  const style = tagChipStyle(tag.color);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTagFilter(tag.id)}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                        active ? "ring-2 ring-emerald-500/40" : "opacity-80 hover:opacity-100"
+                      }`}
+                      style={style}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-medium text-zinc-600 underline-offset-2 hover:underline dark:text-zinc-400"
+            >
+              Clear all filters
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -155,7 +355,7 @@ export function SeekerApplicationsList() {
           description={
             items.length === 0
               ? "Apply on the job board or add an off-platform application to start tracking."
-              : "Try a different status filter to see more applications."
+              : "Try different filters or clear your search to see more applications."
           }
           icon={<PipelineIcon />}
           action={
@@ -171,10 +371,10 @@ export function SeekerApplicationsList() {
             ) : (
               <button
                 type="button"
-                onClick={() => setStatusFilter("all")}
+                onClick={clearFilters}
                 className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200"
               >
-                Clear filter
+                Clear filters
               </button>
             )
           }
@@ -197,6 +397,11 @@ export function SeekerApplicationsList() {
                   ) : null}
                 </div>
                 <p className="mt-1 text-sm font-medium text-sky-800 dark:text-sky-300">{row.company.name}</p>
+                {(row.tags ?? []).length > 0 ? (
+                  <div className="mt-2">
+                    <TagChipList tags={row.tags} maxVisible={3} />
+                  </div>
+                ) : null}
                 <p className="mt-2 text-xs text-zinc-500">
                   Applied {formatDate(row.appliedAt)}
                   {row.location ? ` · ${row.location}` : ""}

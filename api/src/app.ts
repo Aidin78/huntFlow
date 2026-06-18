@@ -12,6 +12,7 @@ import { filesRouter } from './routes/files';
 import { notificationsRouter } from './routes/notifications';
 import { publicHomeRouter } from './routes/publicHome';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
+import { seekerTagsRouter } from './routes/seekerTags';
 import { seekerUpcomingRouter } from './routes/seekerUpcoming';
 import { seekerProfileRouter } from './routes/seekerProfile';
 
@@ -35,6 +36,7 @@ export function createApp(): express.Express {
   app.use('/api', employerSettingsRouter);
   app.use('/api', employerApplicationsRouter);
   app.use('/api', seekerApplicationsRouter);
+  app.use('/api', seekerTagsRouter);
   app.use('/api', seekerUpcomingRouter);
   app.use('/api', seekerProfileRouter);
   app.use('/api', filesRouter);

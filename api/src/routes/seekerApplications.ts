@@ -19,17 +19,26 @@ import {
   employerApplicationDetailSelect,
   mapEmployerApplicationDetail,
 } from '../lib/employerApplicationDetail';
-import { sendError } from '../lib/errors';
+import {
+  attachApplicationTag,
+  attachApplicationTagByName,
+  detachApplicationTag,
+  listApplicationTags,
+  replaceApplicationTags,
+} from '../lib/applicationTags';
 import {
   createManualApplication,
   displayCompanyName,
   updateManualApplication,
 } from '../lib/manualApplication';
+import { sendError } from '../lib/errors';
+import { TAG_COLOR_PRESETS } from '../lib/tags';
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
 
 const applicationIdSchema = z.string().uuid();
 const interviewIdSchema = z.string().uuid();
 const reminderIdSchema = z.string().uuid();
+const tagIdSchema = z.string().uuid();
 
 const createInterviewBodySchema = z.object({
   title: z.string().min(1).max(200),
@@ -64,6 +73,21 @@ const messageBodySchema = z.object({
   body: z.string().min(1).max(4000),
 });
 
+const tagColorSchema = z.enum(TAG_COLOR_PRESETS as unknown as [string, ...string[]]);
+
+const attachTagByIdBodySchema = z.object({
+  tagId: z.string().uuid(),
+});
+
+const attachTagByNameBodySchema = z.object({
+  name: z.string().min(1).max(40),
+  color: tagColorSchema.optional(),
+});
+
+const replaceTagsBodySchema = z.object({
+  tagIds: z.array(z.string().uuid()),
+});
+
 const applicationSelect = {
   id: true,
   title: true,
@@ -78,6 +102,7 @@ const applicationSelect = {
   updatedAt: true,
   company: { select: { id: true, name: true } },
   jobListing: { select: { id: true, title: true } },
+  tags: { select: { tag: { select: { id: true, name: true, color: true } } } },
 } as const;
 
 const createManualBodySchema = z.object({
@@ -114,6 +139,7 @@ function mapSeekerListItem(row: {
   updatedAt: Date;
   company: { id: string; name: string };
   jobListing: { id: string; title: string } | null;
+  tags: Array<{ tag: { id: string; name: string; color: string | null } }>;
 }) {
   return {
     id: row.id,
@@ -132,6 +158,7 @@ function mapSeekerListItem(row: {
       name: displayCompanyName(row.company.name),
     },
     jobListing: row.jobListing,
+    tags: row.tags.map((entry) => entry.tag),
   };
 }
 
@@ -653,5 +680,139 @@ seekerApplicationsRouter.delete('/seeker/applications/:id/reminders/:reminderId'
     // eslint-disable-next-line no-console
     console.error(e);
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete reminder');
+  }
+});
+
+seekerApplicationsRouter.get('/seeker/applications/:id/tags', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationTags(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load tags');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/tags', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const byId = attachTagByIdBodySchema.safeParse(req.body);
+  const byName = byId.success ? null : attachTagByNameBodySchema.safeParse(req.body);
+  if (!byId.success && !byName?.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body');
+    return;
+  }
+
+  try {
+    const result = byId.success
+      ? await attachApplicationTag(idParsed.data, userId, byId.data.tagId)
+      : await attachApplicationTagByName(
+          idParsed.data,
+          userId,
+          byName!.data.name,
+          byName!.data.color,
+        );
+
+    if (!result.ok) {
+      const status =
+        result.code === 'NOT_FOUND' ? 404 : result.code === 'FORBIDDEN' ? 403 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not attach tag');
+      return;
+    }
+    res.status(201).json({ tag: result.tag });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not attach tag');
+  }
+});
+
+seekerApplicationsRouter.put('/seeker/applications/:id/tags', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = replaceTagsBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await replaceApplicationTags(idParsed.data, userId, parsed.data.tagIds);
+    if (!result.ok) {
+      const status =
+        result.code === 'NOT_FOUND' ? 404 : result.code === 'FORBIDDEN' ? 403 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not update tags');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update tags');
+  }
+});
+
+seekerApplicationsRouter.delete('/seeker/applications/:id/tags/:tagId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const tagIdParsed = tagIdSchema.safeParse(req.params.tagId);
+  if (!idParsed.success || !tagIdParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  try {
+    const result = await detachApplicationTag(idParsed.data, userId, tagIdParsed.data);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Tag not found on application');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not detach tag');
   }
 });

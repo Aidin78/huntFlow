@@ -1,5 +1,6 @@
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { SeekerProfileForm } from "@/components/seeker/SeekerProfileForm";
+import { SeekerTagManager } from "@/components/seeker/SeekerTagManager";
 
 export default function JobSeekerSettingsPage() {
   return (
@@ -10,6 +11,7 @@ export default function JobSeekerSettingsPage() {
         subtitle="What employers see when you apply, plus your resume file."
       />
       <SeekerProfileForm />
+      <SeekerTagManager />
     </div>
   );
 }

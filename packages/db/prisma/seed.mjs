@@ -753,6 +753,62 @@ async function seedDemoSchedule(usersByEmail, listingIdx) {
   return { interviews, reminders };
 }
 
+async function seedDemoTags(usersByEmail, listingIdx) {
+  const seeker = usersByEmail['alex.morgan@demo.huntflow.app'];
+  if (!seeker) return { tags: 0, links: 0 };
+
+  const tagDefs = [
+    { name: 'Remote', color: '#2563eb' },
+    { name: 'Priority', color: '#db2777' },
+    { name: 'Referral', color: '#0d9488' },
+  ];
+
+  const tagsByName = {};
+  let tagsCreated = 0;
+  let linksCreated = 0;
+
+  for (const def of tagDefs) {
+    const tag = await prisma.tag.upsert({
+      where: { userId_name: { userId: seeker.id, name: def.name } },
+      create: { userId: seeker.id, name: def.name, color: def.color },
+      update: { color: def.color },
+    });
+    tagsByName[def.name] = tag;
+    tagsCreated += 1;
+  }
+
+  const attachTargets = [
+    { listingTitle: 'Senior Backend Engineer', companyName: demoCompanyNames[0], tagNames: ['Remote', 'Priority'] },
+    { listingTitle: 'Intern — Software Engineering', companyName: demoCompanyNames[0], tagNames: ['Referral'] },
+  ];
+
+  for (const target of attachTargets) {
+    const listing = listingIdx.get(`${target.companyName}::${target.listingTitle}`);
+    if (!listing) continue;
+
+    const application = await prisma.jobApplication.findFirst({
+      where: { userId: seeker.id, jobListingId: listing.id },
+      select: { id: true },
+    });
+    if (!application) continue;
+
+    for (const tagName of target.tagNames) {
+      const tag = tagsByName[tagName];
+      if (!tag) continue;
+      await prisma.jobApplicationTag.upsert({
+        where: {
+          jobApplicationId_tagId: { jobApplicationId: application.id, tagId: tag.id },
+        },
+        create: { jobApplicationId: application.id, tagId: tag.id },
+        update: {},
+      });
+      linksCreated += 1;
+    }
+  }
+
+  return { tags: tagsCreated, links: linksCreated };
+}
+
 async function main() {
   const companies = await upsertCompanies();
   const listingsCreated = await upsertListings(companies);
@@ -772,6 +828,7 @@ async function main() {
     usersByEmail,
     listingIdx,
   );
+  const { tags: tagsSeeded, links: tagLinksSeeded } = await seedDemoTags(usersByEmail, listingIdx);
 
   // eslint-disable-next-line no-console
   console.log('huntFlow demo seed complete.');
@@ -797,6 +854,8 @@ async function main() {
   console.log(`  Demo interviews seeded: ${interviewsSeeded}`);
   // eslint-disable-next-line no-console
   console.log(`  Demo reminders seeded: ${remindersSeeded}`);
+  // eslint-disable-next-line no-console
+  console.log(`  Demo tags seeded: ${tagsSeeded} (${tagLinksSeeded} application links)`);
   // eslint-disable-next-line no-console
   console.log('');
   // eslint-disable-next-line no-console

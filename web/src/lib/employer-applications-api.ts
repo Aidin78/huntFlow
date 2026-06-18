@@ -81,6 +81,7 @@ export type EmployerApplicationDetailResponse = {
     lastMessage: { body: string; createdAt: string; senderName: string } | null;
   };
   statusHistory: StatusHistoryEvent[];
+  tags?: Array<{ id: string; name: string; color: string | null }>;
 };
 
 export type EmployerApplicationsQuery = {
