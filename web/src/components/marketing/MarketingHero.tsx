@@ -5,21 +5,27 @@ import { useState } from "react";
 
 import {
   marketingHeroByAudience,
-  marketingHeroDev,
   marketingRolePaths,
   type RoleTabId,
 } from "@/content/marketing-sample";
 import { roleToQueryParam } from "@/lib/user-role";
+import type { PublicHomeStats } from "@/lib/public-home-api";
+import { formatHomeStatLine } from "@/lib/public-home-api";
 
 const tabs: { id: RoleTabId; label: string }[] = [
   { id: "job_seeker", label: marketingRolePaths.job_seeker.label },
   { id: "employer", label: marketingRolePaths.employer.label },
 ];
 
-export function MarketingHero() {
+type MarketingHeroProps = {
+  stats?: PublicHomeStats | null;
+};
+
+export function MarketingHero({ stats }: MarketingHeroProps) {
   const [audience, setAudience] = useState<RoleTabId>("job_seeker");
   const copy = marketingHeroByAudience[audience];
   const roleQ = roleToQueryParam(audience === "employer" ? "EMPLOYER" : "JOB_SEEKER");
+  const statLine = stats ? formatHomeStatLine(stats) : null;
 
   return (
     <section className="relative overflow-hidden pb-24 pt-16 sm:pb-32 sm:pt-24">
@@ -95,13 +101,11 @@ export function MarketingHero() {
           </Link>
         </div>
 
-        <p className="mx-auto mt-14 max-w-lg text-center text-[0.7rem] leading-relaxed text-zinc-500 dark:text-zinc-500">
-          {marketingHeroDev.devNote}{" "}
-          <code className="rounded-md border border-zinc-200/80 bg-zinc-100/90 px-1.5 py-0.5 font-mono text-[0.62rem] text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300">
-            NEXT_PUBLIC_API_URL
-          </code>{" "}
-          {marketingHeroDev.devNoteSuffix}
-        </p>
+        {statLine ? (
+          <p className="mx-auto mt-10 max-w-lg text-center text-sm font-medium text-emerald-800 dark:text-emerald-300/90">
+            {statLine}
+          </p>
+        ) : null}
       </div>
     </section>
   );

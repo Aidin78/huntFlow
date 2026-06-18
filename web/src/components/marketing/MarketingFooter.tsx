@@ -28,7 +28,7 @@ export function MarketingFooter() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <Link href="/" className="group inline-flex items-baseline gap-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            <Link href="/" scroll={false} className="group inline-flex items-baseline gap-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
               <span>huntFlow</span>
               <span className="inline-block h-1.5 w-1.5 translate-y-px rounded-full bg-emerald-500 opacity-90 transition group-hover:scale-125" />
             </Link>
@@ -50,6 +50,7 @@ export function MarketingFooter() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
+                      scroll={false}
                       className="text-sm text-zinc-600 underline-offset-4 transition hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
                     >
                       {link.label}
@@ -63,7 +64,7 @@ export function MarketingFooter() {
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-zinc-200 pt-8 dark:border-zinc-800">
           <p className="text-xs text-zinc-500">{marketingFooter.copyright}</p>
-          <nav className="flex flex-wrap items-center gap-2" aria-label="Social links (sample)">
+          <nav className="flex flex-wrap items-center gap-2" aria-label="Social links">
             {marketingFooter.social.map((s) => {
               const Icon = socialIcons[s.label];
               return (

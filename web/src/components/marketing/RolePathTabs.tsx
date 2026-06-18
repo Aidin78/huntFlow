@@ -20,7 +20,7 @@ export function RolePathTabs() {
   const content = marketingRolePaths[active];
 
   return (
-    <section id="path" className="relative border-b border-zinc-200/60 bg-white py-20 dark:border-zinc-800/60 dark:bg-zinc-950">
+    <section id="path" className="relative scroll-mt-20 border-b border-zinc-200/60 bg-white py-20 dark:border-zinc-800/60 dark:bg-zinc-950">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent"

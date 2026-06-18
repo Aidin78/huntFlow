@@ -1,5 +1,6 @@
 /**
- * Sample English marketing copy — replace with CMS/API later.
+ * Marketing copy for the public homepage and shared layout chrome.
+ * Dynamic figures (open roles, featured jobs) come from GET /api/public/home.
  */
 
 export type RoleTabId = "job_seeker" | "employer";
@@ -14,15 +15,6 @@ export type FeatureItem = {
 
 export type WhyItem = { title: string; body: string };
 
-export type SampleJob = {
-  id: string;
-  title: string;
-  company: string;
-  location: string;
-  salary: string;
-  type: string;
-};
-
 export type Testimonial = {
   id: string;
   quote: string;
@@ -32,33 +24,28 @@ export type Testimonial = {
 
 export const marketingSections = {
   path: {
-    title: "Your journey",
+    title: "How huntFlow works",
     subtitle:
-      "Use the tabs to see how we prioritize job seekers today versus the employer experience we'll add next.",
+      "One platform for tracking your search and, when you hire, for running a clear pipeline on the same job board.",
     tablistAria: "Audience type",
   },
   features: {
-    title: "Features",
-    subtitle: "Highlights for both audiences—icons and copy stay as placeholders until the API is wired in.",
+    title: "Built for real job searches",
+    subtitle:
+      "Everything on this list ships today — from board applications to off-platform roles you add yourself.",
   },
   why: {
     title: "Why huntFlow?",
   },
   jobs: {
-    title: "Sample listings",
-    subtitle: "Cards are rendered from a static front-end array; they'll be fetched from the backend later.",
-    saveDisabled: "Save sample (disabled)",
+    title: "Open roles on the board",
+    subtitle:
+      "Live listings from companies on huntFlow. Apply in one click and the role lands in your pipeline automatically.",
   },
   testimonials: {
-    title: "What people say",
-    subtitle: "Sample quotes for layout — later these load from an API or CMS.",
+    title: "What job seekers say",
+    subtitle: "People use huntFlow to stay organised when several applications are in flight at once.",
   },
-};
-
-export const marketingHeroDev = {
-  devNote:
-    "This page uses sample data and will load from the API later. The web app reads",
-  devNoteSuffix: "(defaults to http://localhost:4000).",
 };
 
 /** Hero copy switches with Job seeker / Employer tabs (see `MarketingHero`). */
@@ -67,16 +54,16 @@ export const marketingHeroByAudience: Record<
   { eyebrow: string; title: string; subtitle: string }
 > = {
   job_seeker: {
-    eyebrow: "For people who are hiring themselves into a new role",
-    title: "Track every application in one calm pipeline.",
+    eyebrow: "For people actively interviewing",
+    title: "Every application, every stage — one calm pipeline.",
     subtitle:
-      "Log roles, stages, notes, and follow-ups in one place—without losing context across spreadsheets, tabs, and inboxes.",
+      "Apply on the huntFlow job board or log roles from LinkedIn and company sites. Track status, interviews, reminders, and employer messages without losing context.",
   },
   employer: {
-    eyebrow: "For teams who are hiring for their company",
-    title: "Post roles and keep candidates organised—on the same platform.",
+    eyebrow: "For teams hiring on huntFlow",
+    title: "Publish roles, review applicants, and move candidates forward.",
     subtitle:
-      "Employer workflows are rolling out next. Today you can still create an employer account so your team is ready when hiring tools go live.",
+      "Post openings to the public board, see who applied with cover letters and resumes, message candidates, and set pipeline status from Applied to Offer.",
   },
 };
 
@@ -86,37 +73,37 @@ export const marketingRolePaths: Record<
 > = {
   job_seeker: {
     label: "Job seeker",
-    headline: "Recommended path for job seekers",
+    headline: "Your path on huntFlow",
     steps: [
       {
-        title: "Sign up and complete your profile",
-        body: "Add basics and preferences—this step will connect to the API in a later iteration.",
+        title: "Create your profile and resume",
+        body: "Add a headline, links, and an optional PDF resume — employers see this when you apply on the board.",
       },
       {
-        title: "Log each role and stage",
-        body: "Track every posting with a status (applied, interview, offer, and so on).",
+        title: "Apply on the board or add roles manually",
+        body: "Board applications sync automatically. For off-platform roles, add company, title, and notes in seconds.",
       },
       {
-        title: "Reminders and follow-ups",
-        body: "Schedule the next touchpoint so nothing slips through the cracks.",
+        title: "Run the pipeline with interviews and reminders",
+        body: "Move stages yourself for manual entries, message employers on board apps, and schedule interviews plus follow-up reminders.",
       },
     ],
   },
   employer: {
     label: "Employer",
-    headline: "Employer journey (coming next)",
+    headline: "Your hiring path on huntFlow",
     steps: [
       {
-        title: "Publish roles",
-        body: "Placeholder copy—later you'll post openings and manage applicants from the same platform.",
+        title: "Set up your company profile",
+        body: "Add tagline, locations, and about text so candidates know who you are before they apply.",
       },
       {
-        title: "Review inbound applicants",
-        body: "Mock data for now; backend integration comes in a later phase.",
+        title: "Publish active job listings",
+        body: "Roles appear on the public job board. Seekers apply with cover letters and the resume on their profile.",
       },
       {
-        title: "Collaborate with your team",
-        body: "Internal notes and per-candidate stage tracking for hiring teams.",
+        title: "Review, message, and update status",
+        body: "Open each application for full detail, chat with the candidate, and move them to Interview, Offer, or Rejected.",
       },
     ],
   },
@@ -125,65 +112,42 @@ export const marketingRolePaths: Record<
 export const marketingFeatures: FeatureItem[] = [
   {
     icon: "◎",
-    title: "Stage pipeline",
-    description: "From draft to archived—each application has a clear home in the workflow.",
+    title: "Application pipeline",
+    description:
+      "Applied, interview, offer, rejected, or archived — every role has a clear stage, with a full status history.",
   },
   {
     icon: "✎",
-    title: "Notes and history",
-    description: "Capture calls and decisions in one timeline so context never disappears.",
+    title: "Manual + board tracking",
+    description:
+      "Roles from the huntFlow board and jobs you applied to elsewhere live in the same list, with notes and source links.",
   },
   {
     icon: "⏱",
-    title: "Smart reminders",
-    description: "Schedule the next follow-up so outreach stays consistent.",
+    title: "Interviews & reminders",
+    description:
+      "Schedule interview rounds and follow-up reminders per application. Your dashboard shows what is coming up next.",
   },
   {
-    icon: "⚑",
-    title: "Tags and filters",
-    description: "Remote, comp band, stack—filters will load from the server when the API is ready.",
+    icon: "💬",
+    title: "Messages & notifications",
+    description:
+      "Message employers on board applications and get in-app alerts when status changes or new replies arrive.",
   },
 ];
 
 export const marketingWhy: WhyItem[] = [
   {
     title: "Job seeker first",
-    body: "Our near-term roadmap is a fast, obvious experience for people running several searches at once.",
+    body: "The product is designed for people juggling multiple searches — fast logging, obvious status, and less tab fatigue.",
   },
   {
-    title: "Less fragmentation",
-    body: "One source of truth for every company and role instead of tabs, files, and inbox threads.",
+    title: "One source of truth",
+    body: "Stop reconciling spreadsheets, email threads, and memory. Company, role, stage, and notes stay together.",
   },
   {
-    title: "API-ready structure",
-    body: "This page is static for now; the same shapes map cleanly to real endpoints when you ship them.",
-  },
-];
-
-export const marketingSampleJobs: SampleJob[] = [
-  {
-    id: "1",
-    title: "Frontend Engineer (React)",
-    company: "Northline Labs",
-    location: "London · Hybrid",
-    salary: "£55k – £75k",
-    type: "Full-time",
-  },
-  {
-    id: "2",
-    title: "Backend Engineer (Node.js)",
-    company: "Riverstack",
-    location: "Remote (UK)",
-    salary: "Competitive",
-    type: "Full-time",
-  },
-  {
-    id: "3",
-    title: "Product Analyst",
-    company: "Camber",
-    location: "Manchester",
-    salary: "From £42k",
-    type: "Contract",
+    title: "Board and employer tools connected",
+    body: "Seekers apply on the same listings employers publish, so applications, messages, and pipeline updates stay in sync.",
   },
 ];
 
@@ -191,40 +155,40 @@ export const marketingTestimonials: Testimonial[] = [
   {
     id: "t1",
     quote:
-      "Before huntFlow I’d call the wrong company about the wrong stage. Now I always know exactly where I left things.",
-    name: "Sarah M.",
-    role: "Mobile developer",
+      "I apply on the board and track everything else manually in the same place. Interviews and reminders on the dashboard actually keep me on top of follow-ups.",
+    name: "Alex M.",
+    role: "Backend engineer",
   },
   {
     id: "t2",
-    quote: "Still sample data, but the layout feels production-ready—I’m looking forward to wiring it to the API.",
-    name: "Alex R.",
-    role: "Security-focused job seeker",
+    quote:
+      "Status history and messages per application beat digging through email. I always know whether I'm waiting on them or they are waiting on me.",
+    name: "Samira P.",
+    role: "Product designer",
   },
 ];
 
 export const marketingFinalCta = {
-  title: "Pick the account that matches how you use huntFlow.",
+  title: "Start with the account that fits you.",
   subtitle:
-    "Job seekers track applications; employers prepare for posting and pipeline tools. You can create one account per email—choose the right role up front.",
+    "Job seekers get a pipeline for every role. Employers get listings, applicants, and messaging on one platform.",
   jobSeekerButton: "Create job seeker account",
   employerButton: "Create employer account",
   signInLine: "Already registered?",
-  signInLink: "Sign in and select the same audience.",
+  signInLink: "Sign in with the same audience you chose at signup.",
 };
 
 export const marketingFooter = {
-  tagline: "huntFlow — a calmer pipeline for job seekers, with employer tools on the roadmap.",
+  tagline: "huntFlow — track applications, run interviews, and hire from one job board.",
   columns: [
     {
       title: "Product",
       links: [
-        { label: "Your journey", href: "#path" },
-        { label: "Features", href: "#features" },
-        { label: "Why huntFlow?", href: "#why" },
+        { label: "How it works", href: "/#path" },
+        { label: "Features", href: "/#features" },
+        { label: "Why huntFlow?", href: "/#why" },
         { label: "Job board", href: "/jobs" },
-        { label: "Sample listings", href: "#jobs" },
-        { label: "Testimonials", href: "#testimonials" },
+        { label: "Open roles", href: "/#jobs" },
       ],
     },
     {
@@ -232,7 +196,6 @@ export const marketingFooter = {
       links: [
         { label: "Contact", href: "/contact" },
         { label: "FAQ", href: "/faq" },
-        { label: "Status page (sample)", href: "#" },
       ],
     },
     {
@@ -244,9 +207,9 @@ export const marketingFooter = {
     },
   ],
   social: [
-    { label: "LinkedIn", href: "#" },
-    { label: "X / Twitter", href: "#" },
-    { label: "GitHub", href: "#" },
+    { label: "LinkedIn", href: "https://www.linkedin.com" },
+    { label: "X / Twitter", href: "https://x.com" },
+    { label: "GitHub", href: "https://github.com" },
   ],
-  copyright: "© 2026 huntFlow — sample content.",
+  copyright: "© 2026 huntFlow. All rights reserved.",
 };
