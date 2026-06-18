@@ -10,6 +10,7 @@ import { employerSettingsRouter } from './routes/employerSettings';
 import { jobListingsRouter } from './routes/jobListings';
 import { filesRouter } from './routes/files';
 import { notificationsRouter } from './routes/notifications';
+import { publicContactRouter } from './routes/publicContact';
 import { publicHomeRouter } from './routes/publicHome';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
 import { seekerTagsRouter } from './routes/seekerTags';
@@ -31,6 +32,7 @@ export function createApp(): express.Express {
   app.use('/api/auth', authRouter);
   app.use('/api', jobListingsRouter);
   app.use('/api', publicHomeRouter);
+  app.use('/api', publicContactRouter);
   app.use('/api', employerJobListingsRouter);
   app.use('/api', employerOverviewRouter);
   app.use('/api', employerSettingsRouter);

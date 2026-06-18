@@ -2,7 +2,7 @@ import { FaqAccordion } from "@/components/marketing/FaqAccordion";
 import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
 import { StaticPageHero } from "@/components/marketing/StaticPageHero";
 import { LinkButton } from "@/components/ui/button";
-import { faqItems, faqPage } from "@/content/support-sample";
+import { faqItems, faqPage } from "@/content/support-content";
 
 export default function FaqPage() {
   return (

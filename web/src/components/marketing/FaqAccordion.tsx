@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { FaqItem } from "@/content/support-sample";
+import type { FaqItem } from "@/content/support-content";
 
 type FaqAccordionProps = {
   items: FaqItem[];

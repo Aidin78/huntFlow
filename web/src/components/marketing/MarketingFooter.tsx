@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { GitHubIcon, LinkedInIcon } from "@/components/dashboard/dashboard-ui";
 import { marketingFooter } from "@/content/marketing-sample";
-import { supportMeta } from "@/content/support-sample";
+import { supportMeta } from "@/content/support-content";
 
 function XIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (

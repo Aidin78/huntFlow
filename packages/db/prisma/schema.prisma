@@ -30,6 +30,7 @@ model User {
   notifications              Notification[] @relation("NotificationRecipient")
   notificationsSent          Notification[] @relation("NotificationActor")
   notificationPreferences    UserNotificationPreferences?
+  supportInquiries           SupportInquiry[]
 }
 
 model UserNotificationPreferences {
@@ -410,5 +411,21 @@ model JobApplicationTag {
 
   @@id([jobApplicationId, tagId])
   @@index([tagId])
+}
+
+model SupportInquiry {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipHash    String?
+  emailSent Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([email])
 }
 

@@ -1,4 +1,4 @@
-import type { LegalSection } from "@/content/support-sample";
+import { legalCounselNote, type LegalSection } from "@/content/support-content";
 
 type LegalProseProps = {
   sections: LegalSection[];
@@ -27,6 +27,7 @@ export function LegalProse({ sections, lastUpdated }: LegalProseProps) {
           </section>
         ))}
       </div>
+      <p className="mt-10 text-center text-xs text-zinc-500">{legalCounselNote}</p>
     </article>
   );
 }

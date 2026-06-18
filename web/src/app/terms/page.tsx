@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LegalProse } from "@/components/marketing/LegalProse";
 import { MarketingPageLayout } from "@/components/marketing/MarketingPageLayout";
 import { StaticPageHero } from "@/components/marketing/StaticPageHero";
-import { supportMeta, termsPage, termsSections } from "@/content/support-sample";
+import { supportMeta, termsPage, termsSections } from "@/content/support-content";
 
 export const metadata: Metadata = {
   title: "Terms | huntFlow",
