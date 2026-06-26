@@ -1,7 +1,12 @@
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
 
-export type NotificationType = "MESSAGE" | "NEW_APPLICATION" | "STATUS_EVENT";
+export type NotificationType =
+  | "MESSAGE"
+  | "NEW_APPLICATION"
+  | "STATUS_EVENT"
+  | "REMINDER_DUE"
+  | "INTERVIEW_UPCOMING";
 
 export type NotificationItem = {
   id: string;

@@ -1,4 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { SeekerNotificationSettings } from "@/components/seeker/SeekerNotificationSettings";
 import { SeekerProfileForm } from "@/components/seeker/SeekerProfileForm";
 import { SeekerTagManager } from "@/components/seeker/SeekerTagManager";
 
@@ -7,9 +8,10 @@ export default function JobSeekerSettingsPage() {
     <div className="p-4 sm:p-8 lg:p-10">
       <DashboardPageHeader
         badge="Account"
-        title="Profile & resume"
-        subtitle="What employers see when you apply, plus your resume file."
+        title="Settings"
+        subtitle="Profile, resume, tags, and what you want to see in your notification bell."
       />
+      <SeekerNotificationSettings />
       <SeekerProfileForm />
       <SeekerTagManager />
     </div>

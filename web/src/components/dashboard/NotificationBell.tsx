@@ -48,6 +48,10 @@ function typeIcon(type: NotificationItem["type"]) {
       return "💬";
     case "STATUS_EVENT":
       return "↪";
+    case "REMINDER_DUE":
+      return "⏱";
+    case "INTERVIEW_UPCOMING":
+      return "📅";
     default:
       return "🔔";
   }

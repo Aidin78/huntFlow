@@ -7,6 +7,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../lib/notifications';
+import { processScheduleAlertsForUser } from '../lib/scheduleNotifications';
 import { sendError } from '../lib/errors';
 import { requireAuth } from '../middleware/requireAuth';
 
@@ -33,6 +34,9 @@ notificationsRouter.get('/notifications', async (req, res) => {
   const limitParsed = z.coerce.number().int().min(1).max(50).safeParse(req.query.limit);
 
   try {
+    if (role === 'JOB_SEEKER') {
+      await processScheduleAlertsForUser(userId);
+    }
     const result = await listNotifications(userId, role, {
       cursor: cursorParsed.success ? cursorParsed.data : undefined,
       limit: limitParsed.success ? limitParsed.data : undefined,

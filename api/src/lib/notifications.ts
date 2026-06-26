@@ -1,8 +1,18 @@
 import { prisma, UserRole } from '@huntflow/db';
 
-export type NotificationKind = 'NEW_APPLICATION' | 'NEW_MESSAGE' | 'STATUS_EVENT';
+export type NotificationKind =
+  | 'NEW_APPLICATION'
+  | 'NEW_MESSAGE'
+  | 'STATUS_EVENT'
+  | 'REMINDER_DUE'
+  | 'INTERVIEW_UPCOMING';
 
-export type NotificationTypeValue = 'MESSAGE' | 'NEW_APPLICATION' | 'STATUS_EVENT';
+export type NotificationTypeValue =
+  | 'MESSAGE'
+  | 'NEW_APPLICATION'
+  | 'STATUS_EVENT'
+  | 'REMINDER_DUE'
+  | 'INTERVIEW_UPCOMING';
 
 export type CreateNotificationInput = {
   recipientUserId: string;
@@ -33,7 +43,10 @@ export async function shouldNotify(userId: string, kind: NotificationKind): Prom
     case 'NEW_MESSAGE':
       return prefs.notifyNewMessage;
     case 'STATUS_EVENT':
-      return true;
+      return prefs.notifyStatusEvent;
+    case 'REMINDER_DUE':
+    case 'INTERVIEW_UPCOMING':
+      return prefs.notifyInterviewReminder;
     default:
       return true;
   }
@@ -54,6 +67,12 @@ export function buildNotificationHref(
 ): string | null {
   if (!jobApplicationId) return null;
   if (type === 'STATUS_EVENT' && role === UserRole.JOB_SEEKER) {
+    return `/dashboard/seeker/applications/${jobApplicationId}`;
+  }
+  if (
+    (type === 'REMINDER_DUE' || type === 'INTERVIEW_UPCOMING') &&
+    role === UserRole.JOB_SEEKER
+  ) {
     return `/dashboard/seeker/applications/${jobApplicationId}`;
   }
   if (role === UserRole.EMPLOYER) {
@@ -290,6 +309,7 @@ export const notificationPreferencesSelect = {
   notifyNewMessage: true,
   notifyInterviewReminder: true,
   notifyWeeklySummary: true,
+  notifyStatusEvent: true,
   updatedAt: true,
 } as const;
 
@@ -298,6 +318,7 @@ export function mapNotificationPreferences(row: {
   notifyNewMessage: boolean;
   notifyInterviewReminder: boolean;
   notifyWeeklySummary: boolean;
+  notifyStatusEvent: boolean;
   updatedAt: Date;
 }) {
   return {
@@ -305,6 +326,7 @@ export function mapNotificationPreferences(row: {
     notifyNewMessage: row.notifyNewMessage,
     notifyInterviewReminder: row.notifyInterviewReminder,
     notifyWeeklySummary: row.notifyWeeklySummary,
+    notifyStatusEvent: row.notifyStatusEvent,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

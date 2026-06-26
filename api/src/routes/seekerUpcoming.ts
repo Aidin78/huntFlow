@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { listSeekerUpcoming } from '../lib/seekerUpcoming';
+import { processScheduleAlertsForUser } from '../lib/scheduleNotifications';
 import { sendError } from '../lib/errors';
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
 
@@ -20,6 +21,7 @@ seekerUpcomingRouter.get('/seeker/upcoming', async (req, res) => {
   const horizonParsed = z.coerce.number().int().min(1).max(365).safeParse(req.query.horizonDays);
 
   try {
+    await processScheduleAlertsForUser(userId);
     const result = await listSeekerUpcoming(userId, {
       limit: limitParsed.success ? limitParsed.data : undefined,
       horizonDays: horizonParsed.success ? horizonParsed.data : undefined,

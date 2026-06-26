@@ -36,6 +36,15 @@ describe('buildNotificationHref', () => {
     );
   });
 
+  it('returns seeker application link for schedule alerts', () => {
+    expect(buildNotificationHref(UserRole.JOB_SEEKER, 'app-1', 'REMINDER_DUE')).toBe(
+      '/dashboard/seeker/applications/app-1',
+    );
+    expect(buildNotificationHref(UserRole.JOB_SEEKER, 'app-1', 'INTERVIEW_UPCOMING')).toBe(
+      '/dashboard/seeker/applications/app-1',
+    );
+  });
+
   it('returns null without application id', () => {
     expect(buildNotificationHref(UserRole.EMPLOYER, null)).toBeNull();
   });
@@ -53,6 +62,7 @@ describe('shouldNotify', () => {
       notifyNewMessage: true,
       notifyInterviewReminder: true,
       notifyWeeklySummary: false,
+      notifyStatusEvent: true,
       updatedAt: new Date(),
     });
 
@@ -66,9 +76,39 @@ describe('shouldNotify', () => {
       notifyNewMessage: false,
       notifyInterviewReminder: true,
       notifyWeeklySummary: false,
+      notifyStatusEvent: true,
       updatedAt: new Date(),
     });
 
     expect(await shouldNotify('u1', 'NEW_MESSAGE')).toBe(false);
+  });
+
+  it('respects notifyStatusEvent preference', async () => {
+    vi.mocked(prisma.userNotificationPreferences.upsert).mockResolvedValue({
+      userId: 'u1',
+      notifyNewApplication: true,
+      notifyNewMessage: true,
+      notifyInterviewReminder: true,
+      notifyWeeklySummary: false,
+      notifyStatusEvent: false,
+      updatedAt: new Date(),
+    });
+
+    expect(await shouldNotify('u1', 'STATUS_EVENT')).toBe(false);
+  });
+
+  it('respects notifyInterviewReminder for schedule alerts', async () => {
+    vi.mocked(prisma.userNotificationPreferences.upsert).mockResolvedValue({
+      userId: 'u1',
+      notifyNewApplication: true,
+      notifyNewMessage: true,
+      notifyInterviewReminder: false,
+      notifyWeeklySummary: false,
+      notifyStatusEvent: true,
+      updatedAt: new Date(),
+    });
+
+    expect(await shouldNotify('u1', 'REMINDER_DUE')).toBe(false);
+    expect(await shouldNotify('u1', 'INTERVIEW_UPCOMING')).toBe(false);
   });
 });

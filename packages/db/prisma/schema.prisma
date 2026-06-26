@@ -41,6 +41,7 @@ model UserNotificationPreferences {
   notifyNewMessage        Boolean @default(true)
   notifyInterviewReminder Boolean @default(true)
   notifyWeeklySummary     Boolean @default(false)
+  notifyStatusEvent       Boolean @default(true)
 
   updatedAt DateTime @updatedAt
 }
@@ -264,6 +265,8 @@ enum NotificationType {
   MESSAGE
   NEW_APPLICATION
   STATUS_EVENT
+  REMINDER_DUE
+  INTERVIEW_UPCOMING
 }
 
 model Notification {
@@ -313,6 +316,7 @@ model Interview {
   durationMinutes Int?
   location        String?
   notes           String?
+  notifiedAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -329,6 +333,7 @@ model Reminder {
   remindAt    DateTime
   status      ReminderStatus @default(PENDING)
   notes       String?
+  notifiedAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

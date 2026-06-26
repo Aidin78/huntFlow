@@ -16,6 +16,7 @@ import { seekerApplicationsRouter } from './routes/seekerApplications';
 import { seekerTagsRouter } from './routes/seekerTags';
 import { seekerUpcomingRouter } from './routes/seekerUpcoming';
 import { seekerProfileRouter } from './routes/seekerProfile';
+import { seekerSettingsRouter } from './routes/seekerSettings';
 
 export function createApp(): express.Express {
   const app = express();
@@ -41,6 +42,7 @@ export function createApp(): express.Express {
   app.use('/api', seekerTagsRouter);
   app.use('/api', seekerUpcomingRouter);
   app.use('/api', seekerProfileRouter);
+  app.use('/api', seekerSettingsRouter);
   app.use('/api', filesRouter);
   app.use('/api', notificationsRouter);
 
