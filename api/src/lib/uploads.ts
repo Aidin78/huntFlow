@@ -6,6 +6,12 @@ const ALLOWED_MIME = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
+const ATTACHMENT_ALLOWED_MIME = new Set([
+  ...ALLOWED_MIME,
+  'image/png',
+  'image/jpeg',
+]);
+
 const MAX_BYTES = 5 * 1024 * 1024;
 
 export function getUploadDir(): string {
@@ -26,6 +32,16 @@ export function ensureUploadDir(): void {
 export function validateResumeFile(mimeType: string, sizeBytes: number): string | null {
   if (!ALLOWED_MIME.has(mimeType)) {
     return 'Only PDF or DOCX files are allowed';
+  }
+  if (sizeBytes > MAX_BYTES) {
+    return 'File must be 5 MB or smaller';
+  }
+  return null;
+}
+
+export function validateAttachmentFile(mimeType: string, sizeBytes: number): string | null {
+  if (!ATTACHMENT_ALLOWED_MIME.has(mimeType)) {
+    return 'Only PDF, DOCX, PNG, or JPEG files are allowed';
   }
   if (sizeBytes > MAX_BYTES) {
     return 'File must be 5 MB or smaller';

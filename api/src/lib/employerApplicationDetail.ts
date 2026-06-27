@@ -60,9 +60,37 @@ export const employerApplicationDetailSelect = {
     select: { from: true, to: true, at: true, note: true },
   },
   links: {
-    where: { label: 'Job posting' },
-    take: 1,
-    select: { url: true },
+    orderBy: { createdAt: 'asc' as const },
+    select: { id: true, label: true, url: true, createdAt: true },
+  },
+  contacts: {
+    orderBy: { createdAt: 'asc' as const },
+    select: {
+      role: true,
+      createdAt: true,
+      contact: {
+        select: {
+          id: true,
+          name: true,
+          title: true,
+          email: true,
+          phone: true,
+          linkedin: true,
+          notes: true,
+        },
+      },
+    },
+  },
+  attachments: {
+    orderBy: { createdAt: 'desc' as const },
+    select: {
+      id: true,
+      filename: true,
+      mimeType: true,
+      sizeBytes: true,
+      notes: true,
+      createdAt: true,
+    },
   },
   tags: {
     select: { tag: { select: { id: true, name: true, color: true } } },
@@ -125,11 +153,33 @@ export function mapEmployerApplicationDetail(row: {
     at: Date;
     note: string | null;
   }>;
-  links: Array<{ url: string }>;
+  links: Array<{ id: string; label: string | null; url: string; createdAt: Date }>;
+  contacts: Array<{
+    role: string | null;
+    createdAt: Date;
+    contact: {
+      id: string;
+      name: string;
+      title: string | null;
+      email: string | null;
+      phone: string | null;
+      linkedin: string | null;
+      notes: string | null;
+    };
+  }>;
+  attachments: Array<{
+    id: string;
+    filename: string;
+    mimeType: string | null;
+    sizeBytes: number | null;
+    notes: string | null;
+    createdAt: Date;
+  }>;
   tags: Array<{ tag: { id: string; name: string; color: string | null } }>;
 }) {
   const lastMessage = row.thread?.messages[0];
   const isManual = row.jobListingId == null;
+  const jobPostingLink = row.links.find((l) => l.label === 'Job posting');
   return {
     application: {
       id: row.id,
@@ -148,7 +198,34 @@ export function mapEmployerApplicationDetail(row: {
       id: row.company.id,
       name: displayCompanyName(row.company.name),
     },
-    sourceUrl: row.links[0]?.url ?? null,
+    sourceUrl: jobPostingLink?.url ?? null,
+    links: row.links.map((link) => ({
+      id: link.id,
+      label: link.label,
+      url: link.url,
+      createdAt: link.createdAt.toISOString(),
+    })),
+    contacts: row.contacts.map((entry) => ({
+      id: entry.contact.id,
+      applicationId: row.id,
+      role: entry.role,
+      name: entry.contact.name,
+      title: entry.contact.title,
+      email: entry.contact.email,
+      phone: entry.contact.phone,
+      linkedin: entry.contact.linkedin,
+      notes: entry.contact.notes,
+      createdAt: entry.createdAt.toISOString(),
+    })),
+    attachments: row.attachments.map((attachment) => ({
+      id: attachment.id,
+      applicationId: row.id,
+      filename: attachment.filename,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
+      notes: attachment.notes,
+      createdAt: attachment.createdAt.toISOString(),
+    })),
     applicant: {
       id: row.user.id,
       name: row.user.name,

@@ -1,5 +1,7 @@
 import { prisma } from '@huntflow/db';
 
+import { upsertJobPostingLink } from './applicationLinks';
+import { resolveResumeForApplication } from './applicationResume';
 import { sanitizePlainText } from './sanitize';
 
 const PERSONAL_TRACKING_SUFFIX = ' (personal tracking)';
@@ -12,6 +14,7 @@ export type CreateManualApplicationInput = {
   salaryText?: string;
   notes?: string;
   sourceUrl?: string;
+  resumeFileId?: string;
 };
 
 export type CreateManualApplicationResult =
@@ -80,10 +83,10 @@ export async function createManualApplication(
   try {
     const companyId = await resolveCompanyForManualApp(companyName);
 
-    const seekerProfile = await prisma.jobSeekerProfile.findUnique({
-      where: { userId },
-      select: { currentResumeFileId: true },
-    });
+    const resumeResolved = await resolveResumeForApplication(userId, input.resumeFileId);
+    if (!resumeResolved.ok) {
+      return { ok: false, code: 'VALIDATION_ERROR', message: resumeResolved.message };
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const application = await tx.jobApplication.create({
@@ -97,7 +100,7 @@ export async function createManualApplication(
           userId,
           companyId,
           jobListingId: null,
-          resumeFileId: seekerProfile?.currentResumeFileId ?? null,
+          resumeFileId: resumeResolved.resumeFileId,
         },
         select: {
           id: true,
@@ -121,13 +124,7 @@ export async function createManualApplication(
       });
 
       if (sourceUrl) {
-        await tx.jobApplicationLink.create({
-          data: {
-            jobApplicationId: application.id,
-            label: 'Job posting',
-            url: sourceUrl,
-          },
-        });
+        await upsertJobPostingLink(tx, application.id, sourceUrl);
       }
 
       return application;
@@ -231,22 +228,7 @@ export async function updateManualApplication(
 
       if (input.sourceUrl !== undefined) {
         const url = input.sourceUrl?.trim() || null;
-        const link = await tx.jobApplicationLink.findFirst({
-          where: { jobApplicationId: applicationId, label: 'Job posting' },
-          select: { id: true },
-        });
-
-        if (url) {
-          if (link) {
-            await tx.jobApplicationLink.update({ where: { id: link.id }, data: { url } });
-          } else {
-            await tx.jobApplicationLink.create({
-              data: { jobApplicationId: applicationId, label: 'Job posting', url },
-            });
-          }
-        } else if (link) {
-          await tx.jobApplicationLink.delete({ where: { id: link.id } });
-        }
+        await upsertJobPostingLink(tx, applicationId, url);
       }
 
       return app;

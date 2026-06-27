@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 
 import { sendError } from './lib/errors';
+import { adminSupportRouter } from './routes/adminSupport';
 import { authRouter } from './routes/auth';
 import { employerApplicationsRouter } from './routes/employerApplications';
 import { employerJobListingsRouter } from './routes/employerJobListings';
@@ -10,6 +11,7 @@ import { employerSettingsRouter } from './routes/employerSettings';
 import { jobListingsRouter } from './routes/jobListings';
 import { filesRouter } from './routes/files';
 import { notificationsRouter } from './routes/notifications';
+import { pushRouter } from './routes/push';
 import { publicContactRouter } from './routes/publicContact';
 import { publicHomeRouter } from './routes/publicHome';
 import { seekerApplicationsRouter } from './routes/seekerApplications';
@@ -44,7 +46,9 @@ export function createApp(): express.Express {
   app.use('/api', seekerProfileRouter);
   app.use('/api', seekerSettingsRouter);
   app.use('/api', filesRouter);
+  app.use('/api', pushRouter);
   app.use('/api', notificationsRouter);
+  app.use('/api', adminSupportRouter);
 
   app.get('/health', async (_req, res) => {
     try {

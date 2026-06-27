@@ -12,3 +12,4 @@ process.env.DATABASE_URL = process.env.DATABASE_URL_TEST?.trim() || defaultTestD
 process.env.JWT_SECRET =
   process.env.JWT_SECRET?.trim() || 'test-jwt-secret-min-16-chars';
 process.env.UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(repoRoot, 'api', 'uploads-test');
+process.env.NOTIFICATION_JOBS_ENABLED = 'false';

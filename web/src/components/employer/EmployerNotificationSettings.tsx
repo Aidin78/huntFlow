@@ -33,14 +33,12 @@ const PREF_ITEMS: Array<{
   {
     key: "notifyInterviewReminder",
     label: "Interview reminders",
-    description: "Upcoming interviews on your hiring pipeline.",
-    comingSoon: true,
+    description: "Upcoming interviews on your hiring pipeline (bell, email, and browser push).",
   },
   {
     key: "notifyWeeklySummary",
     label: "Weekly hiring summary",
-    description: "A digest of new applicants and pipeline movement.",
-    comingSoon: true,
+    description: "A Monday digest of new applicants, status changes, and messages (email and browser push).",
   },
 ];
 
@@ -103,7 +101,7 @@ export function EmployerNotificationSettings() {
   return (
     <DashboardCard
       title="Notifications"
-      description="Choose what appears in your in-app notification bell."
+      description="Choose what triggers your in-app bell, email, and browser push notifications."
       icon={<BellIcon />}
       accent="violet"
       className="max-w-xl"

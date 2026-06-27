@@ -4,6 +4,7 @@ import type { Prisma } from '@huntflow/db';
 import { z } from 'zod';
 
 import { ensureApplicationThread } from '../lib/applicationThread';
+import { resolveResumeForApplication } from '../lib/applicationResume';
 import { notifyEmployersOfNewApplication } from '../lib/notifications';
 import { sanitizePlainText } from '../lib/sanitize';
 import { sendError } from '../lib/errors';
@@ -11,6 +12,7 @@ import { requireAuth } from '../middleware/requireAuth';
 
 const applyBodySchema = z.object({
   coverLetter: z.string().max(4000).optional(),
+  resumeFileId: z.string().uuid().optional(),
 });
 
 const listingIdSchema = z.string().uuid();
@@ -267,15 +269,23 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
     }
 
     const bodyParsed = applyBodySchema.safeParse(req.body ?? {});
+    if (!bodyParsed.success) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', bodyParsed.error.flatten());
+      return;
+    }
     const coverLetterRaw = bodyParsed.success ? bodyParsed.data.coverLetter : undefined;
     const coverLetter = coverLetterRaw
       ? sanitizePlainText(coverLetterRaw, 4000) || undefined
       : undefined;
 
-    const seekerProfile = await prisma.jobSeekerProfile.findUnique({
-      where: { userId },
-      select: { currentResumeFileId: true },
-    });
+    const resumeResolved = await resolveResumeForApplication(
+      userId,
+      bodyParsed.success ? bodyParsed.data.resumeFileId : undefined,
+    );
+    if (!resumeResolved.ok) {
+      sendError(res, 400, resumeResolved.code, resumeResolved.message);
+      return;
+    }
 
     const locationParts = [listing.city, listing.workArrangement].filter(Boolean);
     const location = locationParts.length ? locationParts.join(' · ') : null;
@@ -292,7 +302,7 @@ jobListingsRouter.post('/job-listings/:id/apply', requireAuth, async (req, res) 
           userId,
           companyId: listing.companyId,
           jobListingId: listing.id,
-          resumeFileId: seekerProfile?.currentResumeFileId ?? null,
+          resumeFileId: resumeResolved.resumeFileId,
         },
         select: { id: true, status: true, appliedAt: true, title: true },
       });

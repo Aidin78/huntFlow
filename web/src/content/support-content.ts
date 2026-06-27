@@ -76,7 +76,13 @@ export const faqItems: FaqItem[] = [
     id: "schedule",
     question: "How do interviews and reminders work?",
     answer:
-      "On each application detail page you can schedule interview rounds and follow-up reminders. Your dashboard Upcoming card shows what is next. When a reminder is due or an interview start time arrives, you get an in-app bell alert (if enabled in Settings). Email alerts may be added later.",
+      "On each application detail page you can schedule interview rounds and follow-up reminders. Your dashboard Upcoming card shows what is next. When a reminder is due or an interview start time arrives, you get an in-app bell alert plus optional email and browser push (if enabled in Settings).",
+  },
+  {
+    id: "contacts-attachments",
+    question: "Can I save contacts and extra files on an application?",
+    answer:
+      "Yes. On any application detail page you can add recruiter contacts (name, email, role, notes) and upload extra attachments such as a tailored cover letter or portfolio PDF. These are private to your account; your profile resume is still managed separately in Settings.",
   },
   {
     id: "messages",
@@ -92,9 +98,9 @@ export const faqItems: FaqItem[] = [
   },
   {
     id: "delete",
-    question: "How do I delete my account?",
+    question: "How do I delete my account or reset my password?",
     answer:
-      "Self-service account deletion is not available yet. Use the contact form or email hello@huntflow.app with your request and we will process it.",
+      "Use Forgot password on the sign-in page to receive a reset link by email. To delete your account, open Settings, scroll to Danger zone, enter your current password, and confirm. Employers: your company listings may remain visible without an active login.",
   },
 ];
 

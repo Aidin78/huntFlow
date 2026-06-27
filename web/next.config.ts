@@ -7,6 +7,7 @@ const apiOrigin = (
 ).replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@huntflow/contracts"],
   async rewrites() {
     return [
       {

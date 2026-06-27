@@ -9,6 +9,7 @@
   "scripts": {
     "dev:web": "npm --workspace web run dev",
     "dev:api": "npm --workspace api run dev",
+    "dev:worker": "npm --workspace api run worker",
     "dev": "npm run dev:api && npm run dev:web",
     "lint:web": "npm --workspace web run lint",
     "lint:api": "npm --workspace api run lint",
@@ -18,7 +19,9 @@
     "db:studio": "npm --workspace @huntflow/db run prisma:studio",
     "db:seed": "npm --workspace @huntflow/db run prisma:seed",
     "db:test:setup": "node scripts/db-test-setup.mjs",
-    "test": "npm run test --workspace api && npm run test --workspace web",
+    "build:contracts": "npm run build --workspace @huntflow/contracts",
+    "test": "npm run build:contracts && npm run test --workspace api && npm run test --workspace web",
+    "test:all": "npm run test && npm run test:e2e",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

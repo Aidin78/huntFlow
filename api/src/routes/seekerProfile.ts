@@ -8,6 +8,10 @@ import { prisma } from '@huntflow/db';
 import { z } from 'zod';
 
 import { sendError } from '../lib/errors';
+import {
+  isResumeReferencedByApplications,
+  safeDeleteResumeFileIfUnreferenced,
+} from '../lib/applicationResume';
 import { deleteFileIfExists, ensureUploadDir, getUploadDir, validateResumeFile } from '../lib/uploads';
 import { userFileDto } from '../lib/userFileDto';
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
@@ -199,8 +203,11 @@ seekerProfileRouter.post('/seeker/resume', (req, res) => {
         update: { currentResumeFileId: userFile.id },
       });
 
-      if (previous?.currentResumeFile?.storageKey) {
-        deleteFileIfExists(previous.currentResumeFile.storageKey);
+      if (previous?.currentResumeFile?.storageKey && previous.currentResumeFileId) {
+        await safeDeleteResumeFileIfUnreferenced(
+          previous.currentResumeFileId,
+          previous.currentResumeFile.storageKey,
+        );
       }
 
       res.status(201).json({ resume: userFileDto(userFile) });
@@ -237,8 +244,11 @@ seekerProfileRouter.delete('/seeker/resume', async (req, res) => {
     data: { currentResumeFileId: null },
   });
 
-  deleteFileIfExists(profile.currentResumeFile.storageKey);
-  await prisma.userFile.delete({ where: { id: profile.currentResumeFile.id } }).catch(() => undefined);
+  const referenced = await isResumeReferencedByApplications(profile.currentResumeFile.id);
+  if (!referenced) {
+    deleteFileIfExists(profile.currentResumeFile.storageKey);
+    await prisma.userFile.delete({ where: { id: profile.currentResumeFile.id } }).catch(() => undefined);
+  }
 
   res.status(204).send();
 });

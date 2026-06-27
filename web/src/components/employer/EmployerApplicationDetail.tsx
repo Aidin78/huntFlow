@@ -3,6 +3,9 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { ApplicationAttachmentsPanel } from "@/components/applications/ApplicationAttachmentsPanel";
+import { ApplicationContactsPanel } from "@/components/applications/ApplicationContactsPanel";
+import { ApplicationLinksPanel } from "@/components/applications/ApplicationLinksPanel";
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
 import { ApplicationPipelineControl } from "@/components/applications/ApplicationPipelineControl";
 import { ApplicationStatusHistory } from "@/components/applications/ApplicationStatusHistory";
@@ -308,6 +311,25 @@ export function EmployerApplicationDetail() {
           ) : (
             <p className="mt-2 text-sm text-zinc-500">No cover letter provided.</p>
           )}
+          {data.jobListing ? (
+            <>
+              <ApplicationLinksPanel
+                applicationId={data.application.id}
+                readOnly
+                initialItems={data.links}
+              />
+              <ApplicationContactsPanel
+                applicationId={data.application.id}
+                readOnly
+                initialItems={data.contacts}
+              />
+              <ApplicationAttachmentsPanel
+                applicationId={data.application.id}
+                readOnly
+                initialItems={data.attachments}
+              />
+            </>
+          ) : null}
         </DashboardCard>
       ) : null}
 

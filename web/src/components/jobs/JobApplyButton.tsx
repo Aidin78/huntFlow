@@ -8,7 +8,7 @@ import { Button, LinkButton, buttonClass } from "@/components/ui/button";
 import { fetchMe } from "@/lib/auth-api";
 import { getAccessToken } from "@/lib/auth-token";
 import { applyToJobListing, fetchJobApplyStatus } from "@/lib/job-listings-api";
-import { fetchSeekerProfile } from "@/lib/seeker-profile-api";
+import { fetchSeekerProfile, uploadSeekerResume, type UserFileMeta } from "@/lib/seeker-profile-api";
 import { roleToQueryParam } from "@/lib/user-role";
 
 type JobApplyButtonProps = {
@@ -30,6 +30,9 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
   const [modalOpen, setModalOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [hasResume, setHasResume] = useState<boolean | null>(null);
+  const [profileResume, setProfileResume] = useState<UserFileMeta | null>(null);
+  const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   const sizeClass =
     size === "large" ? "min-h-12 px-8 text-sm" : "min-h-10 px-5 text-sm";
@@ -82,7 +85,10 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
     setError(null);
     const profile = await fetchSeekerProfile();
     if ("profile" in profile) {
-      setHasResume(Boolean(profile.profile?.resume));
+      const resume = profile.profile?.resume ?? null;
+      setProfileResume(resume);
+      setHasResume(Boolean(resume));
+      setSelectedResumeId(resume?.id ?? null);
     }
     setModalOpen(true);
   }
@@ -110,6 +116,7 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
       const trimmed = coverLetter.trim();
       const result = await applyToJobListing(listingId, token, {
         coverLetter: trimmed || undefined,
+        resumeFileId: selectedResumeId ?? undefined,
       });
       if ("error" in result && result.error) {
         setError(result.error.message ?? "Could not apply");
@@ -216,13 +223,49 @@ export function JobApplyButton({ listingId, className = "", size = "default" }: 
           </p>
           {hasResume === false ? (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-              No resume on file.{" "}
-              <Link href="/dashboard/seeker/settings" className="font-semibold underline">
-                Upload one in settings
-              </Link>{" "}
-              to attach it to this application.
+              No resume on file yet. Upload one below to attach it to this application.
             </p>
           ) : null}
+          <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-950/40">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Resume</p>
+            {profileResume ? (
+              <p className="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                {profileResume.filename}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-zinc-500">No resume selected</p>
+            )}
+            <label className="mt-3 inline-block">
+              <input
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                disabled={applying || uploadingResume}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  void (async () => {
+                    setUploadingResume(true);
+                    setError(null);
+                    const uploaded = await uploadSeekerResume(file);
+                    setUploadingResume(false);
+                    if ("error" in uploaded && uploaded.error) {
+                      setError(uploaded.error.message ?? "Could not upload resume");
+                      return;
+                    }
+                    if ("resume" in uploaded) {
+                      setProfileResume(uploaded.resume);
+                      setSelectedResumeId(uploaded.resume.id);
+                      setHasResume(true);
+                    }
+                  })();
+                }}
+              />
+              <span className="inline-flex min-h-8 cursor-pointer items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200">
+                {uploadingResume ? "Uploading…" : "Upload different resume"}
+              </span>
+            </label>
+          </div>
           <label htmlFor="cover-letter" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Cover letter (optional)
           </label>

@@ -82,6 +82,28 @@ export type EmployerApplicationDetailResponse = {
   };
   statusHistory: StatusHistoryEvent[];
   tags?: Array<{ id: string; name: string; color: string | null }>;
+  links?: Array<{ id: string; label: string | null; url: string; createdAt: string }>;
+  contacts?: Array<{
+    id: string;
+    applicationId: string;
+    role: string | null;
+    name: string;
+    title: string | null;
+    email: string | null;
+    phone: string | null;
+    linkedin: string | null;
+    notes: string | null;
+    createdAt: string;
+  }>;
+  attachments?: Array<{
+    id: string;
+    applicationId: string;
+    filename: string;
+    mimeType: string | null;
+    sizeBytes: number | null;
+    notes: string | null;
+    createdAt: string;
+  }>;
 };
 
 export type EmployerApplicationsQuery = {

@@ -36,6 +36,9 @@ function parseRole(raw: unknown): UserRole {
   if (raw === 'EMPLOYER') {
     return 'EMPLOYER';
   }
+  if (raw === 'PLATFORM_ADMIN') {
+    return 'PLATFORM_ADMIN';
+  }
   return 'JOB_SEEKER';
 }
 

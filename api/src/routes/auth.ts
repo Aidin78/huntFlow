@@ -2,16 +2,22 @@ import { Router } from 'express';
 import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
+import { deleteUserAccount } from '../lib/accountDeletion';
 import { sendError } from '../lib/errors';
 import { signAccessToken } from '../lib/jwt';
+import { createPasswordResetToken, resetPasswordWithToken } from '../lib/passwordReset';
 import { hashPassword, verifyPassword } from '../lib/password';
+import { checkRateLimit } from '../lib/rateLimit';
 import { requireAuth } from '../middleware/requireAuth';
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8).max(128),
   name: z.string().trim().max(120).optional(),
-  role: z.nativeEnum(UserRole).default(UserRole.JOB_SEEKER),
+  role: z
+    .nativeEnum(UserRole)
+    .default(UserRole.JOB_SEEKER)
+    .refine((role) => role !== UserRole.PLATFORM_ADMIN, 'Invalid role'),
 });
 
 const loginSchema = z.object({
@@ -19,6 +25,22 @@ const loginSchema = z.object({
   password: z.string().min(1).max(128),
   role: z.nativeEnum(UserRole),
 });
+
+const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1).max(200),
+  password: z.string().min(8).max(128),
+});
+
+const deleteAccountSchema = z.object({
+  password: z.string().min(1).max(128),
+});
+
+const FORGOT_PASSWORD_RATE_MAX = 5;
+const FORGOT_PASSWORD_RATE_WINDOW_MS = 15 * 60 * 1000;
 
 export const authRouter = Router();
 
@@ -96,14 +118,13 @@ authRouter.post('/login', async (req, res) => {
   }
 
   if (user.role !== selectedRole) {
-    sendError(
-      res,
-      403,
-      'FORBIDDEN',
+    const hint =
       user.role === UserRole.EMPLOYER
         ? 'This account is registered as an employer. Select "Employer" above, then sign in again.'
-        : 'This account is registered as a job seeker. Select "Job seeker" above, then sign in again.',
-    );
+        : user.role === UserRole.PLATFORM_ADMIN
+          ? 'This account is a platform admin. Select "Platform admin" above, then sign in again.'
+          : 'This account is registered as a job seeker. Select "Job seeker" above, then sign in again.';
+    sendError(res, 403, 'FORBIDDEN', hint);
     return;
   }
 
@@ -147,6 +168,85 @@ authRouter.get('/me', requireAuth, async (req, res) => {
 
 authRouter.post('/logout', (_req, res) => {
   res.status(204).send();
+});
+
+authRouter.post('/forgot-password', async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  const ip = req.ip ?? 'unknown';
+  const limited = checkRateLimit(
+    `forgot-password:${ip}`,
+    FORGOT_PASSWORD_RATE_MAX,
+    FORGOT_PASSWORD_RATE_WINDOW_MS,
+  );
+  if (!limited.ok) {
+    sendError(res, 429, 'TOO_MANY_REQUESTS', 'Too many requests. Please try again later.');
+    return;
+  }
+
+  try {
+    await createPasswordResetToken(parsed.data.email);
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not process request');
+  }
+});
+
+authRouter.post('/reset-password', async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await resetPasswordWithToken(parsed.data.token, parsed.data.password);
+    if (!result.ok) {
+      const message =
+        result.code === 'EXPIRED_TOKEN' ? 'Reset link has expired' : 'Invalid reset link';
+      sendError(res, 400, result.code, message);
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not reset password');
+  }
+});
+
+authRouter.delete('/account', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const parsed = deleteAccountSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await deleteUserAccount(userId, parsed.data.password);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 401;
+      sendError(res, status, result.code, 'Invalid password');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete account');
+  }
 });
 
 function isPrismaUniqueViolation(error: unknown): boolean {

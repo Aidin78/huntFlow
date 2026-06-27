@@ -12,6 +12,11 @@ export const DEMO_SEEKER = {
   role: 'seeker' as const,
 };
 
+export const DEMO_ADMIN = {
+  email: 'admin@demo.huntflow.app',
+  role: 'admin' as const,
+};
+
 export async function loginViaUi(
   page: Page,
   {
@@ -21,13 +26,14 @@ export async function loginViaUi(
   }: {
     email: string;
     password?: string;
-    role: 'employer' | 'seeker';
+    role: 'employer' | 'seeker' | 'admin';
   },
 ): Promise<void> {
   await page.goto(`/login?role=${role}`);
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
-  const roleLabel = role === 'employer' ? 'Employer' : 'Job seeker';
+  const roleLabel =
+    role === 'employer' ? 'Employer' : role === 'admin' ? 'Platform admin' : 'Job seeker';
   await page.getByRole('button', { name: `Sign in as ${roleLabel}` }).click();
   await page.waitForURL((url) => !url.pathname.startsWith('/login'), { timeout: 15_000 });
 }

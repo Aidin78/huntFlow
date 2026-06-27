@@ -1,6 +1,6 @@
-import { PrismaClient, UserRole, WorkArrangement, ExperienceLevel } from '@prisma/client';
+import { PrismaClient, SupportInquiryStatus, UserRole, WorkArrangement, ExperienceLevel } from '@prisma/client';
 
-export { UserRole, WorkArrangement, ExperienceLevel };
+export { SupportInquiryStatus, UserRole, WorkArrangement, ExperienceLevel };
 export type { Prisma, NotificationType } from '@prisma/client';
 
 declare global {

@@ -1,3 +1,5 @@
+import { sendEmail } from './email';
+
 export type ContactInquiryEmailPayload = {
   id: string;
   name: string;
@@ -7,25 +9,17 @@ export type ContactInquiryEmailPayload = {
   createdAt: Date;
 };
 
-function isEmailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.SUPPORT_INBOX_EMAIL?.trim());
-}
-
 export function isContactEmailEnabled(): boolean {
-  return isEmailConfigured();
+  return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.SUPPORT_INBOX_EMAIL?.trim());
 }
 
 export async function sendContactNotification(
   inquiry: ContactInquiryEmailPayload,
 ): Promise<boolean> {
-  if (!isEmailConfigured()) {
+  const to = process.env.SUPPORT_INBOX_EMAIL?.trim();
+  if (!to) {
     return false;
   }
-
-  const apiKey = process.env.RESEND_API_KEY!.trim();
-  const to = process.env.SUPPORT_INBOX_EMAIL!.trim();
-  const from =
-    process.env.CONTACT_FROM_EMAIL?.trim() || 'huntFlow <onboarding@resend.dev>';
 
   const text = [
     `New contact form submission`,
@@ -38,33 +32,10 @@ export async function sendContactNotification(
     inquiry.message,
   ].join('\n');
 
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        reply_to: inquiry.email,
-        subject: `[huntFlow contact] ${inquiry.subject}`,
-        text,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      // eslint-disable-next-line no-console
-      console.error('Resend contact notification failed:', res.status, body);
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('Resend contact notification error:', e);
-    return false;
-  }
+  return sendEmail({
+    to,
+    replyTo: inquiry.email,
+    subject: `[huntFlow contact] ${inquiry.subject}`,
+    text,
+  });
 }

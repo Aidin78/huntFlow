@@ -1,3 +1,5 @@
+import type { ApiErrorBody, JobApplicationStatus } from "@huntflow/contracts";
+
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
 import type {
@@ -10,13 +12,8 @@ export type SeekerApplicationDetailResponse = EmployerApplicationDetailResponse;
 
 export type { StatusHistoryEvent } from "@/lib/employer-applications-api";
 
-export type JobApplicationStatus =
-  | "DRAFT"
-  | "APPLIED"
-  | "INTERVIEW"
-  | "OFFER"
-  | "REJECTED"
-  | "ARCHIVED";
+export type { JobApplicationStatus };
+export type { ApiErrorBody };
 
 export type SeekerManualStatus = Exclude<JobApplicationStatus, "DRAFT">;
 
@@ -73,10 +70,6 @@ export type UpdateManualApplicationInput = {
   salaryText?: string | null;
   notes?: string | null;
   sourceUrl?: string | null;
-};
-
-export type ApiErrorBody = {
-  error?: { code?: string; message?: string };
 };
 
 function authHeaders(): HeadersInit {
@@ -159,6 +152,45 @@ export async function archiveSeekerApplication(
   id: string,
 ): Promise<UpdateApplicationStatusResponse | ApiErrorBody> {
   return updateSeekerApplicationStatus(id, "ARCHIVED");
+}
+
+export async function updateApplicationResume(
+  applicationId: string,
+  resumeFileId: string | null,
+): Promise<{ resumeFileId: string | null } | ApiErrorBody> {
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(applicationId)}/resume`,
+    {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeFileId }),
+    },
+  );
+  const data = (await res.json()) as { resumeFileId: string | null } & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
+}
+
+export async function uploadApplicationResume(
+  applicationId: string,
+  file: File,
+): Promise<{ resumeFileId: string; resume: import("@huntflow/contracts").UserFileMeta } | ApiErrorBody> {
+  const form = new FormData();
+  form.append("resume", file);
+  const res = await fetch(
+    `${getPublicApiBaseUrl()}/api/seeker/applications/${encodeURIComponent(applicationId)}/resume`,
+    {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: form,
+    },
+  );
+  const data = (await res.json()) as {
+    resumeFileId: string;
+    resume: import("@huntflow/contracts").UserFileMeta;
+  } & ApiErrorBody;
+  if (!res.ok) return data;
+  return data;
 }
 
 export function applicationStatusLabel(status: JobApplicationStatus): string {

@@ -1,7 +1,9 @@
+import type { ApiErrorBody, ExperienceLevel, WorkArrangement } from "@huntflow/contracts";
+
 import { getPublicApiBaseUrl } from '@/lib/api-base';
 
-export type WorkArrangement = 'REMOTE' | 'HYBRID' | 'ONSITE';
-export type ExperienceLevel = 'INTERN' | 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD';
+export type { ExperienceLevel, WorkArrangement };
+export type { ApiErrorBody };
 
 export type JobListingCompany = {
   id: string;
@@ -33,10 +35,6 @@ export type JobApplyStatus = {
 export type JobApplyResult = {
   alreadyApplied: boolean;
   application: { id: string; status: string; appliedAt: string | null; title?: string };
-};
-
-export type ApiErrorBody = {
-  error?: { code?: string; message?: string };
 };
 
 export type JobListingsFilters = {
@@ -176,7 +174,7 @@ export async function fetchJobApplyStatus(
 export async function applyToJobListing(
   listingId: string,
   token: string,
-  options?: { coverLetter?: string },
+  options?: { coverLetter?: string; resumeFileId?: string },
 ): Promise<JobApplyResult | ApiErrorBody> {
   const res = await fetch(
     `${getPublicApiBaseUrl()}/api/job-listings/${encodeURIComponent(listingId)}/apply`,
@@ -188,6 +186,7 @@ export async function applyToJobListing(
       },
       body: JSON.stringify({
         ...(options?.coverLetter ? { coverLetter: options.coverLetter } : {}),
+        ...(options?.resumeFileId ? { resumeFileId: options.resumeFileId } : {}),
       }),
     },
   );

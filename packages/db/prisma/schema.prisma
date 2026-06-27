@@ -10,6 +10,12 @@ datasource db {
 enum UserRole {
   JOB_SEEKER
   EMPLOYER
+  PLATFORM_ADMIN
+}
+
+enum SupportInquiryStatus {
+  OPEN
+  RESOLVED
 }
 
 model User {
@@ -31,6 +37,9 @@ model User {
   notificationsSent          Notification[] @relation("NotificationActor")
   notificationPreferences    UserNotificationPreferences?
   supportInquiries           SupportInquiry[]
+  passwordResetTokens        PasswordResetToken[]
+  pushSubscriptions          PushSubscription[]
+  weeklyDigestLogs           WeeklyDigestLog[]
 }
 
 model UserNotificationPreferences {
@@ -276,6 +285,8 @@ model Notification {
   body             String?
   createdAt        DateTime         @default(now())
   readAt           DateTime?
+  emailSentAt      DateTime?
+  pushSentAt       DateTime?
 
   recipientUserId  String
   recipient        User             @relation("NotificationRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
@@ -317,6 +328,7 @@ model Interview {
   location        String?
   notes           String?
   notifiedAt      DateTime?
+  employerNotifiedAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -419,18 +431,64 @@ model JobApplicationTag {
 }
 
 model SupportInquiry {
-  id        String   @id @default(uuid())
-  name      String
-  email     String
-  subject   String
-  message   String
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  ipHash    String?
-  emailSent Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         String               @id @default(uuid())
+  name       String
+  email      String
+  subject    String
+  message    String
+  status     SupportInquiryStatus @default(OPEN)
+  adminNotes String?
+  resolvedAt DateTime?
+  userId     String?
+  user       User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipHash     String?
+  emailSent  Boolean              @default(false)
+  createdAt  DateTime             @default(now())
 
   @@index([createdAt])
   @@index([email])
+  @@index([status])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WeeklyDigestLog {
+  weekStart DateTime
+  sentAt    DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, weekStart])
+}
+
+model BackgroundJobRun {
+  jobKey String   @id
+  ranAt  DateTime @default(now())
 }
 

@@ -4,11 +4,61 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import { sendError } from '../lib/errors';
-import { canAccessUserFile } from '../lib/fileAccess';
+import { canAccessAttachment, canAccessUserFile } from '../lib/fileAccess';
+import { getAttachmentForDownload } from '../lib/applicationAttachments';
 import { resolveStoragePath } from '../lib/uploads';
 import { requireAuth } from '../middleware/requireAuth';
 
 export const filesRouter = Router();
+
+const fileIdSchema = z.string().uuid();
+
+filesRouter.get('/attachments/:id', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = fileIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid attachment id');
+    return;
+  }
+
+  const allowed = await canAccessAttachment(idParsed.data, userId, req.userRole);
+  if (!allowed) {
+    sendError(res, 403, 'FORBIDDEN', 'Access denied');
+    return;
+  }
+
+  const attachment = await getAttachmentForDownload(idParsed.data);
+  if (!attachment?.storageKey) {
+    sendError(res, 404, 'NOT_FOUND', 'Attachment not found');
+    return;
+  }
+
+  try {
+    const fullPath = resolveStoragePath(attachment.storageKey);
+    if (!fs.existsSync(fullPath)) {
+      sendError(res, 404, 'NOT_FOUND', 'File not found on disk');
+      return;
+    }
+
+    const inline = req.query.inline === '1' || req.query.inline === 'true';
+    const mimeType = attachment.mimeType ?? 'application/octet-stream';
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(attachment.filename)}"`,
+    );
+    fs.createReadStream(fullPath).pipe(res);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not read file');
+  }
+});
 
 filesRouter.get('/files/:id', requireAuth, async (req, res) => {
   const userId = req.userId;

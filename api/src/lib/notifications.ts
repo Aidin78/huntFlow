@@ -1,5 +1,7 @@
 import { prisma, UserRole } from '@huntflow/db';
 
+import { deliverNotificationChannelsAsync } from './notificationDelivery';
+
 export type NotificationKind =
   | 'NEW_APPLICATION'
   | 'NEW_MESSAGE'
@@ -75,6 +77,9 @@ export function buildNotificationHref(
   ) {
     return `/dashboard/seeker/applications/${jobApplicationId}`;
   }
+  if (type === 'INTERVIEW_UPCOMING' && role === UserRole.EMPLOYER) {
+    return `/dashboard/employer/applications/${jobApplicationId}`;
+  }
   if (role === UserRole.EMPLOYER) {
     return `/dashboard/employer/applications/${jobApplicationId}?tab=messages`;
   }
@@ -139,7 +144,16 @@ export async function createNotificationIfEnabled(
   input: Omit<CreateNotificationInput, 'recipientUserId'>,
 ) {
   if (!(await shouldNotify(userId, kind))) return;
-  await createNotification({ ...input, recipientUserId: userId });
+  const row = await createNotification({ ...input, recipientUserId: userId });
+  deliverNotificationChannelsAsync({
+    notificationId: row.id,
+    recipientUserId: userId,
+    kind,
+    type: input.type,
+    title: input.title,
+    body: input.body,
+    jobApplicationId: input.jobApplicationId,
+  });
 }
 
 export async function notifyEmployersOfNewApplication(opts: {

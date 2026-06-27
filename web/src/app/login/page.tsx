@@ -62,13 +62,13 @@ function LoginForm() {
       <div
         role="tablist"
         aria-label="Sign-in audience"
-        className="mt-6 flex rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/60"
+        className="mt-6 grid grid-cols-3 gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/60"
       >
         <button
           type="button"
           role="tab"
           aria-selected={role === "JOB_SEEKER"}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+          className={`rounded-lg px-2 py-2 text-sm font-semibold transition ${
             role === "JOB_SEEKER"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -81,7 +81,7 @@ function LoginForm() {
           type="button"
           role="tab"
           aria-selected={role === "EMPLOYER"}
-          className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+          className={`rounded-lg px-2 py-2 text-sm font-semibold transition ${
             role === "EMPLOYER"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -89,6 +89,19 @@ function LoginForm() {
           onClick={() => setAudience("EMPLOYER")}
         >
           Employer
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={role === "PLATFORM_ADMIN"}
+          className={`rounded-lg px-2 py-2 text-sm font-semibold transition ${
+            role === "PLATFORM_ADMIN"
+              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-50"
+              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200"
+          }`}
+          onClick={() => setAudience("PLATFORM_ADMIN")}
+        >
+          Platform admin
         </button>
       </div>
       <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
@@ -121,9 +134,17 @@ function LoginForm() {
         </div>
 
         <div className="space-y-1.5">
-          <label className={authLabelClass} htmlFor="login-password">
-            Password
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className={authLabelClass} htmlFor="login-password">
+              Password
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-sky-700 hover:underline dark:text-sky-300"
+            >
+              Forgot password?
+            </Link>
+          </div>
           <input
             id="login-password"
             className={authFieldClass}
@@ -141,13 +162,19 @@ function LoginForm() {
       </form>
 
       <p className="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
-        No account?{" "}
-        <Link
-          href={`/register?role=${roleToQueryParam(role)}`}
-          className="font-semibold text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400"
-        >
-          Create one
-        </Link>
+        {role === "PLATFORM_ADMIN" ? (
+          <>Platform admin accounts are provisioned by huntFlow operations.</>
+        ) : (
+          <>
+            No account?{" "}
+            <Link
+              href={`/register?role=${roleToQueryParam(role)}`}
+              className="font-semibold text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400"
+            >
+              Create one
+            </Link>
+          </>
+        )}
       </p>
     </AuthPageShell>
   );

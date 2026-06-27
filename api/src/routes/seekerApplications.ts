@@ -1,8 +1,30 @@
+import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
+
 import { Router } from 'express';
+import multer from 'multer';
 import { prisma, UserRole } from '@huntflow/db';
 import { z } from 'zod';
 
 import { getSeekerApplication } from '../lib/applicationAccess';
+import {
+  createApplicationAttachment,
+  deleteApplicationAttachment,
+  listApplicationAttachments,
+} from '../lib/applicationAttachments';
+import {
+  createApplicationLink,
+  deleteApplicationLink,
+  listApplicationLinks,
+  updateApplicationLink,
+} from '../lib/applicationLinks';
+import {
+  createApplicationContact,
+  deleteApplicationContact,
+  listApplicationContacts,
+  updateApplicationContact,
+} from '../lib/applicationContacts';
 import {
   createApplicationInterview,
   createApplicationReminder,
@@ -31,13 +53,51 @@ import {
   displayCompanyName,
   updateManualApplication,
 } from '../lib/manualApplication';
+import {
+  updateApplicationResume,
+  uploadApplicationResume,
+} from '../lib/applicationResume';
 import { sendError } from '../lib/errors';
+import { userFileDto } from '../lib/userFileDto';
 import { TAG_COLOR_PRESETS } from '../lib/tags';
+import { deleteFileIfExists, ensureUploadDir, getUploadDir, validateAttachmentFile, validateResumeFile } from '../lib/uploads';
 import { requireJobSeeker } from '../middleware/requireJobSeeker';
+
+ensureUploadDir();
+const attachmentUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      ensureUploadDir();
+      cb(null, getUploadDir());
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '';
+      cb(null, `${randomUUID()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
+const resumeUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      ensureUploadDir();
+      cb(null, getUploadDir());
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '';
+      cb(null, `${randomUUID()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
 
 const applicationIdSchema = z.string().uuid();
 const interviewIdSchema = z.string().uuid();
 const reminderIdSchema = z.string().uuid();
+const contactIdSchema = z.string().uuid();
+const linkIdSchema = z.string().uuid();
+const attachmentIdSchema = z.string().uuid();
 const tagIdSchema = z.string().uuid();
 
 const createInterviewBodySchema = z.object({
@@ -71,6 +131,54 @@ const updateReminderBodySchema = z.object({
 
 const messageBodySchema = z.object({
   body: z.string().min(1).max(4000),
+});
+
+const optionalEmail = z
+  .string()
+  .trim()
+  .optional()
+  .transform((s) => (s && s.length > 0 ? s : undefined))
+  .refine((s) => s === undefined || z.string().email().safeParse(s).success, 'Invalid email');
+
+const optionalUrl = z
+  .string()
+  .trim()
+  .optional()
+  .transform((s) => (s && s.length > 0 ? s : undefined))
+  .refine((s) => s === undefined || z.string().url().safeParse(s).success, 'Invalid URL');
+
+const createContactBodySchema = z.object({
+  name: z.string().min(1).max(200),
+  title: z.string().max(200).optional(),
+  email: optionalEmail,
+  phone: z.string().max(40).optional(),
+  linkedin: optionalUrl,
+  notes: z.string().max(4000).optional(),
+  role: z.string().max(100).optional(),
+});
+
+const updateContactBodySchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  title: z.string().max(200).nullable().optional(),
+  email: z.union([optionalEmail, z.null()]).optional(),
+  phone: z.string().max(40).nullable().optional(),
+  linkedin: z.union([optionalUrl, z.null()]).optional(),
+  notes: z.string().max(4000).nullable().optional(),
+  role: z.string().max(100).nullable().optional(),
+});
+
+const createLinkBodySchema = z.object({
+  label: z.string().max(100).optional(),
+  url: z.string().url(),
+});
+
+const updateLinkBodySchema = z.object({
+  label: z.string().max(100).nullable().optional(),
+  url: z.string().url().optional(),
+});
+
+const updateResumeBodySchema = z.object({
+  resumeFileId: z.string().uuid().nullable(),
 });
 
 const tagColorSchema = z.enum(TAG_COLOR_PRESETS as unknown as [string, ...string[]]);
@@ -682,6 +790,512 @@ seekerApplicationsRouter.delete('/seeker/applications/:id/reminders/:reminderId'
     sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete reminder');
   }
 });
+
+seekerApplicationsRouter.get('/seeker/applications/:id/contacts', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationContacts(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load contacts');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/contacts', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = createContactBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await createApplicationContact(idParsed.data, userId, parsed.data);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not create contact');
+      return;
+    }
+    res.status(201).json({ contact: result.contact });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not create contact');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id/contacts/:contactId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const contactParsed = contactIdSchema.safeParse(req.params.contactId);
+  if (!idParsed.success || !contactParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  const parsed = updateContactBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateApplicationContact(
+      idParsed.data,
+      contactParsed.data,
+      userId,
+      parsed.data,
+    );
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not update contact');
+      return;
+    }
+    res.json({ contact: result.contact });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update contact');
+  }
+});
+
+seekerApplicationsRouter.delete('/seeker/applications/:id/contacts/:contactId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const contactParsed = contactIdSchema.safeParse(req.params.contactId);
+  if (!idParsed.success || !contactParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  try {
+    const result = await deleteApplicationContact(idParsed.data, contactParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Contact not found');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete contact');
+  }
+});
+
+seekerApplicationsRouter.get('/seeker/applications/:id/links', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationLinks(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load links');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/links', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  const parsed = createLinkBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await createApplicationLink(idParsed.data, userId, parsed.data);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not create link');
+      return;
+    }
+    res.status(201).json({ link: result.link });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not create link');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id/links/:linkId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const linkParsed = linkIdSchema.safeParse(req.params.linkId);
+  if (!idParsed.success || !linkParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  const parsed = updateLinkBodySchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+    return;
+  }
+
+  try {
+    const result = await updateApplicationLink(
+      idParsed.data,
+      linkParsed.data,
+      userId,
+      parsed.data,
+    );
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      sendError(res, status, result.code, result.message ?? 'Could not update link');
+      return;
+    }
+    res.json({ link: result.link });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not update link');
+  }
+});
+
+seekerApplicationsRouter.delete('/seeker/applications/:id/links/:linkId', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  const linkParsed = linkIdSchema.safeParse(req.params.linkId);
+  if (!idParsed.success || !linkParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+    return;
+  }
+
+  try {
+    const result = await deleteApplicationLink(idParsed.data, linkParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Link not found');
+      return;
+    }
+    res.status(204).send();
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete link');
+  }
+});
+
+seekerApplicationsRouter.patch('/seeker/applications/:id/resume', (req, res) => {
+  const isMultipart = req.is('multipart/form-data');
+
+  if (isMultipart) {
+    resumeUpload.single('resume')(req, res, async (err: unknown) => {
+      const userId = req.userId;
+      if (!userId) {
+        sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+        return;
+      }
+
+      const idParsed = applicationIdSchema.safeParse(req.params.id);
+      if (!idParsed.success) {
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+        return;
+      }
+
+      if (err) {
+        sendError(res, 400, 'VALIDATION_ERROR', 'Invalid upload');
+        return;
+      }
+
+      const file = req.file;
+      if (!file) {
+        sendError(res, 400, 'VALIDATION_ERROR', 'Resume file is required');
+        return;
+      }
+
+      const validationError = validateResumeFile(file.mimetype, file.size);
+      if (validationError) {
+        fs.unlinkSync(file.path);
+        sendError(res, 400, 'VALIDATION_ERROR', validationError);
+        return;
+      }
+
+      try {
+        const result = await uploadApplicationResume(idParsed.data, userId, {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          filename: file.filename,
+        });
+        if (!result.ok) {
+          deleteFileIfExists(file.filename);
+          const status = result.code === 'NOT_FOUND' ? 404 : 400;
+          sendError(res, status, result.code, result.message);
+          return;
+        }
+
+        const resume = await prisma.userFile.findUnique({
+          where: { id: result.resumeFileId },
+          select: { id: true, filename: true, mimeType: true, sizeBytes: true, createdAt: true },
+        });
+        res.json({
+          resumeFileId: result.resumeFileId,
+          resume: resume ? userFileDto(resume) : null,
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        sendError(res, 500, 'INTERNAL_ERROR', 'Could not update resume');
+      }
+    });
+    return;
+  }
+
+  void (async () => {
+    const userId = req.userId;
+    if (!userId) {
+      sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+      return;
+    }
+
+    const idParsed = applicationIdSchema.safeParse(req.params.id);
+    if (!idParsed.success) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+      return;
+    }
+
+    const parsed = updateResumeBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid request body', parsed.error.flatten());
+      return;
+    }
+
+    try {
+      const result = await updateApplicationResume(
+        idParsed.data,
+        userId,
+        parsed.data.resumeFileId,
+      );
+      if (!result.ok) {
+        const status = result.code === 'NOT_FOUND' ? 404 : 400;
+        sendError(res, status, result.code, result.message);
+        return;
+      }
+
+      let resume = null;
+      if (result.resumeFileId) {
+        const file = await prisma.userFile.findUnique({
+          where: { id: result.resumeFileId },
+          select: { id: true, filename: true, mimeType: true, sizeBytes: true, createdAt: true },
+        });
+        resume = file ? userFileDto(file) : null;
+      }
+
+      res.json({ resumeFileId: result.resumeFileId, resume });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      sendError(res, 500, 'INTERNAL_ERROR', 'Could not update resume');
+    }
+  })();
+});
+
+seekerApplicationsRouter.get('/seeker/applications/:id/attachments', async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+    return;
+  }
+
+  const idParsed = applicationIdSchema.safeParse(req.params.id);
+  if (!idParsed.success) {
+    sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+    return;
+  }
+
+  try {
+    const result = await listApplicationAttachments(idParsed.data, userId);
+    if (!result.ok) {
+      sendError(res, 404, result.code, 'Application not found');
+      return;
+    }
+    res.json({ items: result.items });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(e);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Could not load attachments');
+  }
+});
+
+seekerApplicationsRouter.post('/seeker/applications/:id/attachments', (req, res) => {
+  attachmentUpload.single('file')(req, res, async (err: unknown) => {
+    const userId = req.userId;
+    if (!userId) {
+      sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+      return;
+    }
+
+    const idParsed = applicationIdSchema.safeParse(req.params.id);
+    if (!idParsed.success) {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid application id');
+      return;
+    }
+
+    if (err) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid upload');
+      return;
+    }
+
+    const file = req.file;
+    if (!file) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'File is required');
+      return;
+    }
+
+    const validationError = validateAttachmentFile(file.mimetype, file.size);
+    if (validationError) {
+      fs.unlinkSync(file.path);
+      sendError(res, 400, 'VALIDATION_ERROR', validationError);
+      return;
+    }
+
+    const notesParsed = z.string().max(4000).optional().safeParse(req.body.notes);
+
+    try {
+      const result = await createApplicationAttachment(idParsed.data, userId, {
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        storageKey: file.filename,
+        notes: notesParsed.success ? notesParsed.data : undefined,
+      });
+
+      if (!result.ok) {
+        deleteFileIfExists(file.filename);
+        const status = result.code === 'NOT_FOUND' ? 404 : 400;
+        sendError(res, status, result.code, result.message ?? 'Could not save attachment');
+        return;
+      }
+
+      res.status(201).json({ attachment: result.attachment });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      sendError(res, 500, 'INTERNAL_ERROR', 'Could not save attachment');
+    }
+  });
+});
+
+seekerApplicationsRouter.delete(
+  '/seeker/applications/:id/attachments/:attachmentId',
+  async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+      sendError(res, 401, 'UNAUTHORIZED', 'Not authenticated');
+      return;
+    }
+
+    const idParsed = applicationIdSchema.safeParse(req.params.id);
+    const attachmentParsed = attachmentIdSchema.safeParse(req.params.attachmentId);
+    if (!idParsed.success || !attachmentParsed.success) {
+      sendError(res, 400, 'VALIDATION_ERROR', 'Invalid id');
+      return;
+    }
+
+    try {
+      const result = await deleteApplicationAttachment(
+        idParsed.data,
+        attachmentParsed.data,
+        userId,
+      );
+      if (!result.ok) {
+        sendError(res, 404, result.code, 'Attachment not found');
+        return;
+      }
+      res.status(204).send();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      sendError(res, 500, 'INTERNAL_ERROR', 'Could not delete attachment');
+    }
+  },
+);
 
 seekerApplicationsRouter.get('/seeker/applications/:id/tags', async (req, res) => {
   const userId = req.userId;

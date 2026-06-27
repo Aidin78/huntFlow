@@ -121,6 +121,11 @@ const listings = [
 
 const demoUsers = [
   {
+    email: 'admin@demo.huntflow.app',
+    name: 'Platform Admin',
+    role: 'PLATFORM_ADMIN',
+  },
+  {
     email: 'employer@demo.huntflow.app',
     name: 'Jordan Blake',
     role: 'EMPLOYER',

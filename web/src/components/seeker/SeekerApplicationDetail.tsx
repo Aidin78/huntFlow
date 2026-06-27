@@ -3,6 +3,10 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { ApplicationResumePanel } from "@/components/applications/ApplicationResumePanel";
+import { ApplicationAttachmentsPanel } from "@/components/applications/ApplicationAttachmentsPanel";
+import { ApplicationContactsPanel } from "@/components/applications/ApplicationContactsPanel";
+import { ApplicationLinksPanel } from "@/components/applications/ApplicationLinksPanel";
 import { ApplicationInterviewsPanel } from "@/components/applications/ApplicationInterviewsPanel";
 import { ApplicationMessagesPanel } from "@/components/applications/ApplicationMessagesPanel";
 import { ApplicationRemindersPanel } from "@/components/applications/ApplicationRemindersPanel";
@@ -390,6 +394,11 @@ export function SeekerApplicationDetail() {
               initialTags={data.tags}
             />
           </div>
+
+          <ApplicationResumePanel applicationId={data.application.id} initialResume={data.resume} />
+          <ApplicationContactsPanel applicationId={data.application.id} />
+          <ApplicationLinksPanel applicationId={data.application.id} initialItems={data.links} />
+          <ApplicationAttachmentsPanel applicationId={data.application.id} />
 
           <h4 className="mt-6 text-xs font-semibold uppercase tracking-wide text-zinc-500">Status history</h4>
           <ApplicationStatusHistory events={data.statusHistory} className="mt-3 space-y-3" />

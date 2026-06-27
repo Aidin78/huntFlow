@@ -93,7 +93,7 @@ export function SeekerNotificationSettings() {
   return (
     <DashboardCard
       title="Notifications"
-      description="Choose what appears in your in-app notification bell."
+      description="Choose what triggers your in-app bell, email, and browser push notifications."
       icon={<BellIcon />}
       accent="violet"
       className="mb-8 max-w-xl"

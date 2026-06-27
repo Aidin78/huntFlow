@@ -1,3 +1,5 @@
+import { AccountDangerZone } from "@/components/settings/AccountDangerZone";
+import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
 import { SeekerNotificationSettings } from "@/components/seeker/SeekerNotificationSettings";
 import { SeekerProfileForm } from "@/components/seeker/SeekerProfileForm";
@@ -9,11 +11,13 @@ export default function JobSeekerSettingsPage() {
       <DashboardPageHeader
         badge="Account"
         title="Settings"
-        subtitle="Profile, resume, tags, and what you want to see in your notification bell."
+        subtitle="Profile, resume, tags, notifications, and account security."
       />
+      <PushNotificationSettings />
       <SeekerNotificationSettings />
       <SeekerProfileForm />
       <SeekerTagManager />
+      <AccountDangerZone audience="seeker" />
     </div>
   );
 }

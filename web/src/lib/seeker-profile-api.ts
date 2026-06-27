@@ -1,5 +1,10 @@
+import type { ApiErrorBody, UserFileMeta } from "@huntflow/contracts";
+
 import { getPublicApiBaseUrl } from "@/lib/api-base";
 import { getAccessToken } from "@/lib/auth-token";
+
+export type { UserFileMeta };
+export type { ApiErrorBody };
 
 export type SeekerProfile = {
   userId: string;
@@ -13,15 +18,6 @@ export type SeekerProfile = {
   resume: UserFileMeta | null;
 };
 
-export type UserFileMeta = {
-  id: string;
-  filename: string;
-  mimeType: string;
-  sizeBytes: number;
-  createdAt: string;
-  downloadUrl: string;
-};
-
 export type SeekerProfileInput = {
   headline?: string;
   bio?: string;
@@ -30,10 +26,6 @@ export type SeekerProfileInput = {
   linkedinUrl?: string;
   portfolioUrl?: string;
   githubUrl?: string;
-};
-
-export type ApiErrorBody = {
-  error?: { code?: string; message?: string };
 };
 
 function authHeaders(json = true): HeadersInit {
